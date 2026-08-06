@@ -1,0 +1,2 @@
+export const vendors=[{id:'v1',name:'Microsoft',aliases:['microsoft','msft','mocrisoft'],mailDomains:['microsoft.com','microsoft-demo.example'],booth:'Booth C01'},{id:'v2',name:'One Identity',aliases:['one identity','oneidentity'],mailDomains:['oneidentity.com','oneidentity-demo.example'],booth:'Booth B08'}];
+export const vendorContacts=[{vendorId:'v1',personId:'p6'},{vendorId:'v1',personId:'p7'},{vendorId:'v2',personId:'p8'}];

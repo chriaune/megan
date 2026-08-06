@@ -1,0 +1,2 @@
+import{serviceConfig}from'./config.js';import{apiClient}from'./apiClient.js';import{storageService}from'./storageService.js';const KEY='megan_messages';
+export const chatService={async load(defaults){return serviceConfig.mode==='api'?apiClient.get('/conversation/messages'):storageService.load(KEY,defaults)},async save(messages){return serviceConfig.mode==='api'?apiClient.put('/conversation/messages',{messages}):storageService.save(KEY,messages)},clear(){storageService.remove(KEY)}};

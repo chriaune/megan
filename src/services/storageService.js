@@ -1,0 +1,1 @@
+export const storageService={load(key,fallback){try{const value=localStorage.getItem(key);return value?JSON.parse(value):fallback}catch{localStorage.removeItem(key);return fallback}},save(key,value){try{localStorage.setItem(key,JSON.stringify(value));return true}catch{return false}},remove(key){localStorage.removeItem(key)}};
