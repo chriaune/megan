@@ -23,6 +23,21 @@ import {
   chatService,
   serviceConfig,
 } from "./services/index.js";
+const guestUser = {
+  id: "guest",
+  name: "Guest",
+  email: "",
+  company: "",
+  attendance: "Guest",
+  role: "Guest",
+  interests: [],
+  bingoFacts: [],
+};
+const guestMessages =  [
+  { from: "m", type: "welcome" },
+];
+const isGuest = (user) => !user || user.id === "guest";
+
 const initials = (n) =>
     n
       .split(" ")
@@ -72,24 +87,46 @@ function Session({ s, my }) {
   );
 }
 function Register({ complete }) {
-  const [name, setName] = useState(""),
+  const [lastName, setLastName] = useState(""),
+    [firstName, setFirstName] = useState(""),
     [email, setEmail] = useState(""),
+    validEmail = email.includes("@"),
     [company, setCompany] = useState(""),
     [attendance, setAttendance] = useState("Onsite"),
-    [facts, setFacts] = useState([0, 1, 2]);
+    [facts, setFacts] = useState([]);
   return (
     <div className="card">
-      <h4>Register for MEGAN</h4>
+      <h4>Register for {event.shortName}</h4>
       <input
-        placeholder="Full name"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
+        placeholder="Last Name"
+        value={lastName}
+        onChange={(e) =>
+          setLastName(e.target.value)
+        }
+      />
+
+      <input
+        placeholder="First Name"
+        value={firstName}
+        onChange={(e) =>
+          setFirstName(e.target.value)
+        }
       />
       <input
         placeholder="Email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
       />
+      {email &&
+      !email.includes("@") && (
+        <small
+          style={{
+            color: "red"
+          }}
+        >
+          Please enter a valid email address.
+        </small>
+      )}
       <input
         placeholder="Company"
         value={company}
@@ -123,10 +160,16 @@ function Register({ complete }) {
       ))}
       <button
         className="red"
-        disabled={!email || facts.length !== 3}
+        disabled={
+          !lastName.trim() ||
+          !firstName.trim() ||
+          !company.trim() ||
+          !validEmail ||
+          facts.length !== 3
+        }
         onClick={() =>
           complete({
-            name,
+            name: `${lastName} ${firstName}`.trim(),
             email,
             company,
             attendance,
@@ -140,6 +183,14 @@ function Register({ complete }) {
   );
 }
 function Badge({ u }) {
+  if (isGuest(u)) {
+    return (
+      <div className="card">
+        <p>Please register to view your badge.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="badge">
       <div>
@@ -148,9 +199,13 @@ function Badge({ u }) {
         <span>{u.attendance}</span>
         <em>{u.role}</em>
       </div>
+
       <div className="qr">
         {Array.from({ length: 64 }).map((_, i) => (
-          <span className={i % 3 === 0 || i % 7 === 0 ? "on" : ""} key={i} />
+          <span
+            className={i % 3 === 0 || i % 7 === 0 ? "on" : ""}
+            key={i}
+          />
         ))}
       </div>
     </div>
@@ -197,6 +252,13 @@ function Connect({ p, cmd }) {
     </div>
   );
 }
+function cancelSignOut() {
+  say(
+    "text",
+    "Sign out canceled."
+  );
+
+}
 function Content({
   m,
   cmd,
@@ -209,23 +271,55 @@ function Content({
   connect,
   connections,
   vendors,
+  confirmSignOut,
+  cancelSignOut,
 }) {
   const byId = (id) => people.find((x) => x.id === id);
   if (m.type === "text") return <p>{m.text}</p>;
-  if (m.type === "welcome")
-    return (
-      <>
-        <p>
-          <b>Hi {u?.name.split(" ")[0] || "there"}! 👋</b>
-        </p>
-        <p>
-          Welcome to <b>{event.shortName}</b>.
-        </p>
-        <p>
-          Data mode: <b>{serviceConfig.mode}</b>
-        </p>
-      </>
-    );
+if (m.type === "welcome")
+  return (
+    <>
+      {isGuest(u) ? (
+        <>
+          <p>
+            <b>Hello, I am M.E.G.A.N. 👋</b>
+          </p>
+
+          <p>
+            Your Magna Event Guide and Assistant
+            for the entire conference.
+          </p>
+
+          <p>
+            You can ask me:
+          </p>
+
+          <ul>
+            <li>Show agenda</li>
+            <li>Show WiFi</li>
+            <li>Find a vendor</li>
+            <li>Event information</li>
+          </ul>
+
+          <p>
+            To use personal features such as
+            My Badge, MEGAN Bingo, My Connections
+            and Connect Me, please register first.
+          </p>
+        </>
+      ) : (
+        <>
+          <p>
+            <b>Welcome back {u.name}! 👋</b>
+          </p>
+
+          <p>
+            How can I help you today?
+          </p>
+        </>
+      )}
+    </>
+  );
   if (m.type === "register") return <Register complete={register} />;
   if (m.type === "agenda")
     return (
@@ -308,6 +402,32 @@ function Content({
       </div>
     );
   }
+  if (m.type === "confirmSignOut")
+  return (
+    <div className="card">
+      <h4>Do you really want to sign out?</h4>
+
+      <p>
+        To access your conference profile again,
+        you will need to verify your email address.
+      </p>
+
+      <div className="confirm-actions">
+        <button
+          className="red"
+          onClick={confirmSignOut}
+        >
+          Sign Out
+        </button>
+
+        <button
+          onClick={cancelSignOut}
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  )
   if (m.type === "connect") {
     const p = byId(m.personId);
     return p ? (
@@ -386,9 +506,10 @@ function Content({
 }
 function App() {
   const [people, setPeople] = useState([]),
-    [u, setU] = useState(null),
+    [u, setU] = useState(guestUser),
     [sessions, setSessions] = useState([]),
     [vendors, setVendors] = useState([]),
+    [profileMenuOpen, setProfileMenuOpen] = useState(false),
     [connections, setConnections] = useState({
       accepted: [],
       incoming: [],
@@ -403,38 +524,35 @@ function App() {
     (async () => {
       const defaults = [
         { from: "m", type: "welcome" },
-        {
-          from: "m",
-          type: "text",
-          text: "Guest mode provides public agenda and WiFi. Register to unlock personal features.",
-        },
       ];
-      const [p, user, s, v, c, m] = await Promise.all([
+      const [p, s, v, c] = await Promise.all([
         attendeeService.getAll(),
-        attendeeService.getCurrent(),
         sessionsService.getAll(),
         vendorsService.getAll(),
         connectionsService.getAll(),
-        chatService.load(defaults),
       ]);
       setPeople(p);
-      setU(user);
       setSessions(s);
       setVendors(v);
       setConnections(c);
-      setMsgs(m);
+      const savedUser =
+        localStorage.getItem("megan_active_user");
+
+      if (savedUser) {
+        setU(JSON.parse(savedUser));
+      } else {
+        setU(guestUser);
+      }
+      setMsgs(guestMessages);
       setReady(true);
     })().catch((e) => {
       console.error(e);
       setReady(true);
     });
   }, []);
-  const append = (message) =>
-      setMsgs((v) => {
-        const n = [...v, message];
-        chatService.save(n);
-        return n;
-      }),
+    const append = (message) => {
+      setMsgs((current) => [...current, message]);
+    },
     say = (type, text = "", extra = {}) =>
       append({ from: "m", type, text, ...extra }),
     ask = (text) => append({ from: "u", type: "text", text }),
@@ -444,13 +562,25 @@ function App() {
     const result = await attendeeService.register(form);
     setPeople(await attendeeService.getAll());
     setU(result.person);
+    setProfileMenuOpen(false);
+    localStorage.setItem("megan_active_user", JSON.stringify(result.person));
     say(
       "text",
       result.vendor
         ? `Welcome ${result.person.name}. MEGAN recognized ${result.vendor.name}. Your profile was saved.`
-        : `Welcome ${result.person.name}. Your profile was saved.`,
+        : `Welcome ${result.person.name}. Thank you for register! How can I help you now?`,
     );
   }
+
+  function requestSignOut() {
+    say("confirmSignOut");
+  }
+  function confirmSignOut() {
+    sessionStorage.removeItem("megan_active_user");
+    localStorage.removeItem("megan_active_user");
+    setU(guestUser);
+    setMsgs(guestMessages);
+  } 
   async function cmd(raw) {
     const q = raw.trim();
     if (!q) return;
@@ -459,23 +589,23 @@ function App() {
       p = people.find((x) => l.includes(x.name.toLowerCase())),
       v = await vendorsService.findByText(l);
     if (l.includes("register")) say("register");
-    else if (l.includes("my day")) u ? say("myday") : need("My Day");
+    else if (l.includes("my day")) !isGuest(u) ? say("myday") : need("My Day");
     else if (l.includes("agenda")) say("agenda");
-    else if (l.includes("badge")) u ? say("badge") : need("Badge");
-    else if (l.includes("bingo")) u ? say("bingo") : need("Bingo");
+    else if (l.includes("badge")) !isGuest(u) ? say("badge") : need("Badge");
+    else if (l.includes("bingo")) !isGuest(u) ? say("bingo") : need("Bingo");
     else if (
       v &&
       (l.includes("connect me with") || l.includes("connect me to"))
     )
-      u ? say("vendor", "", { vendorId: v.id }) : need("Connect Me");
+      !isGuest(u) ? say("vendor", "", { vendorId: v.id }) : need("Connect Me");
     else if (l.includes("my connections"))
-      u ? say("connections") : need("connections");
+      !isGuest(u) ? say("connections") : need("connections");
     else if (l.includes("incoming"))
-      u ? say("incoming") : need("incoming requests");
+      !isGuest(u) ? say("incoming") : need("incoming requests");
     else if (l.includes("outgoing"))
-      u ? say("outgoing") : need("outgoing requests");
+      !isGuest(u) ? say("outgoing") : need("outgoing requests");
     else if (l.includes("connect me"))
-      u ? say("suggestions") : need("Connect Me");
+      !isGuest(u) ? say("suggestions") : need("Connect Me");
     else if (l.startsWith("meet ") && p)
       say(
         "text",
@@ -486,7 +616,7 @@ function App() {
       say("contact", "", { label: `Email for ${p.name}`, value: p.email });
     else if (l.includes("show phone") && p)
       say("contact", "", { label: `Phone for ${p.name}`, value: p.phone });
-    else if (l.includes("reminder")) u ? say("reminder") : need("reminders");
+    else if (l.includes("reminder")) !isGuest(u) ? say("reminder") : need("reminders");
     else if (l.includes("wifi")) say("wifi");
     else
       say(
@@ -513,7 +643,7 @@ function App() {
   const upNextLabel = nextSession
     ? `${nextSession.title} (${nextSession.start})`
     : "End of Event Day";
-  const chips = u
+  const chips = !isGuest(u)
     ? [
         "Show my day",
         "Show my badge",
@@ -538,10 +668,25 @@ function App() {
             </span>
             <span className="up-next-line">Up Next: {upNextLabel}</span>
           </div>
-          <aside>
-            <button>{u ? u.name : "Not registered yet"}</button>
-            <span>{u ? `${u.attendance} • 🔔1` : "Guest"}</span>
-            {u && (
+          <aside style={{ position: "relative" }}>
+            <button
+              className="profile-button"
+              onClick={() =>
+                !isGuest(u) &&
+                setProfileMenuOpen(!profileMenuOpen)
+              }
+            >
+              {isGuest(u) ? "Not registered yet" : u.name}
+            </button>
+        {!isGuest(u) && profileMenuOpen && (
+          <div className="profile-menu">
+            <button onClick={requestSignOut}>
+              Sign Out
+            </button>
+          </div>
+        )}
+            <span> {isGuest(u) ? "Guest" : `${u.attendance} • 🔔1`} </span>
+            {!isGuest(u) && (
               <small>
                 <button onClick={() => cmd("show my connections")}>
                   🤝{connections.accepted.length}
@@ -575,6 +720,8 @@ function App() {
                   connect={connect}
                   connections={connections}
                   vendors={vendors}
+                  confirmSignOut={confirmSignOut} 
+                  cancelSignOut={cancelSignOut}
                 />
               </div>
             </div>
