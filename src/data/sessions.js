@@ -126,7 +126,7 @@ export const sessions = [
     title: "Vendor Lunch",
     start: "12:45",
     end: "14:00",
-    room: "Dining Area",
+    room: "Kitchen",
     kind: "mandatory",
   },
   {
@@ -135,7 +135,7 @@ export const sessions = [
     title: "Lunch",
     start: "13:00",
     end: "14:00",
-    room: "Dining Area",
+    room: "Buffet Area",
     kind: "mandatory",
   },
 
@@ -145,7 +145,7 @@ export const sessions = [
     title: "MGIT and Vendor Fair",
     start: "14:00",
     end: "16:30",
-    room: "Expo Hall",
+    room: "Conference Center Lobby",
     kind: "selected",
   },
   {

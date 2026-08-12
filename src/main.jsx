@@ -588,9 +588,7 @@ function MyDayView({
                       {canCheckIn && (
                         <button
                           type="button"
-                          className={`checkin-button ${
-                            isCheckedIn ? "checked-in" : ""
-                          }`}
+                          className={`checkin-button ${isCheckedIn ? "checked-in" : ""}`}
                           onClick={() => checkInToSession(x.id)}
                           disabled={isCheckedIn}
                         >
@@ -738,15 +736,16 @@ function ConfirmSignOutView({ confirmSignOut, cancelSignOut }) {
   );
 }
 
-function VenueView({ u, sessions, focusSessionId }) {
+function VenueView({ u, sessions, focusSessionId, selectedTracks }) {
   return (
     <div>
-      <h4>Venue Map</h4>
       <VenueMap
         user={u}
         sessions={sessions}
         now={new Date(event.current)}
         focusSessionId={focusSessionId}
+        selectedTracks={selectedTracks || {}} // ✅ Ensure it's always an object
+        // onCheckIn={onCheckIn}
       />
     </div>
   );
@@ -904,9 +903,14 @@ function Content({
         cancelSignOut={cancelSignOut}
       />
     ),
-    [MESSAGE_TYPES.VENUE]: () => (
-      <VenueView u={u} sessions={sessions} focusSessionId={m.focusSessionId} />
-    ),
+[MESSAGE_TYPES.VENUE]: () => (
+  <VenueView 
+    u={u} 
+    sessions={sessions} 
+    focusSessionId={m.focusSessionId}
+    selectedTracks={selectedTracks} // ✅ ADD THIS LINE
+  />
+),
     [MESSAGE_TYPES.CONNECT]: () => {
       const p = byId(m.personId);
       return p ? (

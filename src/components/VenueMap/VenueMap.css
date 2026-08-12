@@ -1,12 +1,56 @@
 /* ============================================================================
-   VENUE MAP PAGE
+   CSS VARIABLES
+   ============================================================================ */
+
+:root {
+  /* Colors */
+  --color-primary: #111827;
+  --color-secondary: #6b7280;
+  --color-accent: #c8102e;
+  --color-background: #fafbfc;
+  --color-white: #ffffff;
+  --color-light: #f9fafb;
+  --color-lighter: #f3f4f6;
+
+  /* Status Colors */
+  --color-live: #16a34a;
+  --color-soon: #f59e0b;
+  --color-restroom: #0ea5e9;
+  --color-elevator: #22c55e;
+  --color-outdoor: #84cc16;
+  --color-entrance: #059669;
+
+  /* Shadows */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 10px 28px rgba(17, 24, 39, 0.08);
+  --shadow-lg: 0 4px 12px rgba(200, 16, 46, 0.2);
+  --shadow-marker: 0 4px 12px rgba(0, 0, 0, 0.35);
+
+  /* Border Radius */
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 14px;
+  --radius-xl: 16px;
+  --radius-2xl: 18px;
+  --radius-full: 999px;
+
+  /* Spacing */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 20px;
+}
+
+/* ============================================================================
+   PAGE LAYOUT
    ============================================================================ */
 
 .venue-map-page {
   width: 100%;
-  padding: 16px;
-  color: #111827;
-  background: #fafbfc;
+  padding: var(--space-lg);
+  background-color: var(--color-background);
+  color: var(--color-primary);
 }
 
 /* ============================================================================
@@ -16,24 +60,25 @@
 .venue-map-header {
   display: flex;
   justify-content: space-between;
-  gap: 16px;
   align-items: flex-start;
-  margin-bottom: 20px;
+  gap: var(--space-lg);
+  margin-bottom: var(--space-xl);
 }
 
 .venue-map-header h2 {
   margin: 0;
   font-size: 1.75rem;
   font-weight: 900;
-  color: #111827;
+  color: var(--color-primary);
   letter-spacing: -0.5px;
 }
 
 .venue-map-header p {
-  margin: 6px 0 0;
-  color: #6b7280;
+  margin-top: 6px;
+  margin-bottom: 0;
   font-size: 0.95rem;
   font-weight: 500;
+  color: var(--color-secondary);
 }
 
 /* ============================================================================
@@ -43,15 +88,15 @@
 .venue-level-tabs {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 20px;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-xl);
 }
 
 .venue-level-tabs button {
-  border: 1px solid #d1d5db;
-  background: #ffffff;
-  border-radius: 999px;
   padding: 8px 16px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-full);
+  background: var(--color-white);
   font-weight: 700;
   font-size: 0.95rem;
   color: #374151;
@@ -60,15 +105,20 @@
 }
 
 .venue-level-tabs button:hover {
-  border-color: #c8102e;
-  background: #fff5f6;
+  border-color: var(--color-accent);
+  background-color: #fff5f6;
+  transform: translateY(-1px);
+}
+
+.venue-level-tabs button:focus {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
 }
 
 .venue-level-tabs button.active {
-  background: #c8102e;
-  color: #ffffff;
-  border-color: #c8102e;
-  box-shadow: 0 4px 12px rgba(200, 16, 46, 0.2);
+  background-color: var(--color-accent);
+  color: var(--color-white);
+  box-shadow: var(--shadow-lg);
 }
 
 /* ============================================================================
@@ -77,8 +127,8 @@
 
 .venue-map-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 340px;
-  gap: 20px;
+  grid-template-columns: 1fr minmax(0, 340px);
+  gap: var(--space-xl);
   align-items: start;
 }
 
@@ -86,80 +136,208 @@
    MAP CARD
    ============================================================================ */
 
-.venue-map-card {
-  width: 100%;
-  overflow: hidden;
-  background: #ffffff;
-  border-radius: 16px;
-  box-shadow: 0 10px 28px rgba(17, 24, 39, 0.08);
+.venue-map-shell {
+    width: 100%;
+    height: 100%; /* ✅ ADDED: Full height */
+    display: flex;
+    flex-direction: column;
 }
+
+.venue-map-card {
+    background: var(--color-white);
+    border-radius: var(--radius-2xl);
+    padding: 10px;
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+    color: var(--color-primary);
+    height: 100%; /* ✅ ADDED: Full height */
+    display: flex;
+    flex-direction: column;
+}
+
+.venue-map-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    margin-bottom: 10px;
+    flex-shrink: 0; /* ✅ ADDED: Don't shrink */
+}
+
+.venue-map-topbar h4 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 900;
+  color: var(--color-accent);
+}
+
+/* ============================================================================
+   ZOOM CONTROLS
+   ============================================================================ */
+
+.venue-map-zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--color-white);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-full);
+  padding: 4px 8px;
+}
+
+.zoom-button {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-full);
+  font-size: 16px;
+  font-weight: 900;
+  color: var(--color-primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.zoom-button:hover:not(:disabled) {
+  background: #f0f0f0;
+  color: var(--color-accent);
+}
+
+.zoom-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.zoom-button.reset {
+  font-size: 14px;
+}
+
+.zoom-level {
+  min-width: 40px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-secondary);
+}
+/* ============================================================================
+   MAP IMAGE & SCROLL
+   ============================================================================ */
 
 .venue-map-image-wrap {
   position: relative;
   width: 100%;
-  overflow-x: auto;
-  overflow-y: hidden;
-  border-radius: 16px;
-  background: #f3f4f6;
-  aspect-ratio: 16 / 9;
+  height: 100%; /* ✅ CHANGED: Full height */
+  min-height: 500px; /* ✅ ADDED: Minimum height fallback */
+  overflow: auto;
+  border-radius: var(--radius-lg);
+  background-color: var(--color-background);
+  border: 1px solid var(--border-color);
+  cursor: grab;
+  user-select: none;
+  scroll-behavior: smooth;
+}
+
+.venue-map-image-wrap:active {
+  cursor: grabbing;
+}
+
+/* Custom Scrollbars */
+.venue-map-image-wrap::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+.venue-map-image-wrap::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.venue-map-image-wrap::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 6px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+.venue-map-image-wrap::-webkit-scrollbar-thumb:hover {
+  background-color: #9ca3af;
+}
+
+/* Map Image Stage */
+.venue-map-image-stage {
+  position: relative;
+  width: 980px;
+  min-width: 980px;
+  height: auto;
+  will-change: transform;
+  display: inline-block;
 }
 
 .venue-map-image {
   display: block;
   width: 100%;
-  min-width: 900px;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 16px;
+  height: auto;
+  border-radius: var(--radius-lg);
+  pointer-events: none;
+  user-select: none;
 }
-
 /* ============================================================================
    MARKERS & PINS
    ============================================================================ */
 
 .venue-map-marker {
   position: absolute;
+  top: 50%;
+  left: 50%;
   transform: translate(-50%, -50%);
-  width: 32px;
-  height: 32px;
-  border: 3px solid #ffffff;
-  border-radius: 999px;
-  background: #6b7280;
-  color: #ffffff;
-  cursor: pointer;
-  display: grid;
-  place-items: center;
-  font-size: 11px;
+  width: 28px;
+  height: 28px;
+  border: 2px solid var(--color-white);
+  border-radius: var(--radius-full);
+  background-color: var(--color-accent);
+  color: var(--color-white);
+  font-size: 10px;
   font-weight: 900;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: var(--shadow-marker);
   transition: all 0.2s ease;
+  z-index: 5;
 }
 
 .venue-map-marker:hover {
   transform: translate(-50%, -50%) scale(1.15);
-  z-index: 5;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+  z-index: 10;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+.venue-map-marker:focus {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
 }
 
 .venue-map-marker.selected {
-  outline: 4px solid rgba(200, 16, 46, 0.3);
-  background: #c8102e;
-  z-index: 6;
+  outline: 3px solid rgba(214, 3, 3, 0.4);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
 .venue-map-pin {
   position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   width: 28px;
   height: 28px;
-  transform: translate(-50%, -50%);
-  border: 2px solid #ffffff;
-  border-radius: 999px;
-  background: #c8102e;
-  color: #ffffff;
+  border: 2px solid var(--color-white);
+  border-radius: var(--radius-full);
+  background-color: var(--color-accent);
+  color: var(--color-white);
   font-size: 10px;
   font-weight: 900;
-  line-height: 1;
   display: grid;
   place-items: center;
   cursor: pointer;
@@ -182,79 +360,144 @@
   top: 36px;
   left: 50%;
   transform: translateX(-50%);
-  white-space: nowrap;
-  background: #111827;
-  color: #ffffff;
-  border-radius: 999px;
+  background: var(--color-primary);
+  color: var(--color-white);
+  border-radius: var(--radius-full);
   padding: 4px 8px;
   font-size: 10px;
   font-weight: 800;
+  white-space: nowrap;
   pointer-events: none;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Marker Type Variants */
+.venue-map-pin.restroom { background: var(--color-restroom); }
+.venue-map-pin.restroom:hover { background: #0284c7; }
+
+.venue-map-pin.elevator { background: var(--color-elevator); }
+.venue-map-pin.elevator:hover { background: #15803d; }
+
+.venue-map-pin.outdoor-area { background: var(--color-outdoor); }
+.venue-map-pin.outdoor-area:hover { background: #71c319; }
+
+.venue-map-pin.entrance { background: var(--color-entrance); }
+.venue-map-pin.entrance:hover { background: #047857; }
+
+/* Marker Status Variants */
+.marker-live { background: var(--color-live) !important; }
+.marker-soon { background: var(--color-soon) !important; }
+.marker-my-current { background: var(--color-live) !important; }
+.marker-my-next { background: var(--color-live) !important; }
+.marker-focused { background: var(--color-accent) !important; }
+.marker-restroom { background: var(--color-restroom) !important; }
+.marker-elevator { background: var(--color-elevator) !important; }
+
+/* ============================================================================
+   LEGEND
+   ============================================================================ */
+
+.venue-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-top: var(--space-lg);
+  align-items: center;
+}
+
+.venue-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #374151;
+}
+
+.venue-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-full);
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.venue-d-current { background: var(--color-live); }
+.venue-d-next { background: #2563eb; }
+.venue-d-restroom { background: var(--color-restroom); }
+.venue-d-elevator { background: var(--color-elevator); }
+
+.venue-legend-combined {
+  display: grid;
+  gap: var(--space-sm);
 }
 
 /* ============================================================================
-   MARKER TYPES
+   TOGGLE BUTTONS
    ============================================================================ */
 
-.venue-map-pin.restroom {
-  background: #0ea5e9;
+.venue-map-toggle-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    margin-bottom: 10px;
+    flex-shrink: 0; /* ✅ ADDED: Don't shrink */
 }
 
-.venue-map-pin.restroom:hover {
-  background: #0284c7;
+.venue-map-toggle-legend button {
+  padding: 6px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-full);
+  background: var(--color-white);
+  font-weight: 700;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #374151;
 }
 
-.venue-map-pin.elevator {
-  background: #16a34a;
+.venue-map-toggle-legend button:hover {
+  border-color: var(--color-accent);
+  background: #f0f0f0;
 }
 
-.venue-map-pin.elevator:hover {
-  background: #15803d;
+.venue-map-toggle-legend button:focus {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
 }
 
-.venue-map-pin.outdoor-area {
-  background: #84cc16;
+.venue-map-toggle-legend button.active {
+  background: var(--color-accent);
+  color: var(--color-white);
+  border-color: var(--color-accent);
 }
 
-.venue-map-pin.outdoor-area:hover {
-  background: #71c319;
+/* Reusable toggle button style */
+.toggle-button {
+  border: 1px solid var(--border-color);
+  background: var(--color-white);
+  border-radius: var(--radius-full);
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #374151;
 }
 
-.venue-map-pin.entrance {
-  background: #059669;
+.toggle-button:hover {
+  border-color: var(--color-accent);
+  background: #f0f0f0;
 }
 
-.venue-map-pin.entrance:hover {
-  background: #047857;
+.toggle-button:focus {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
 }
 
-.marker-live {
-  background: #16a34a !important;
-}
-
-.marker-soon {
-  background: #f59e0b !important;
-}
-
-.marker-my-current {
-  background: #2563eb !important;
-}
-
-.marker-my-next {
-  background: #7c3aed !important;
-}
-
-.marker-focused {
-  background: #c8102e !important;
-}
-
-.marker-restroom {
-  background: #0ea5e9 !important;
-}
-
-.marker-elevator {
-  background: #22c55e !important;
+.toggle-button.active {
+  background: var(--color-accent);
+  color: var(--color-white);
+  border-color: var(--color-accent);
 }
 
 /* ============================================================================
@@ -262,12 +505,13 @@
    ============================================================================ */
 
 .venue-room-panel {
-  border: 1px solid #e5e7eb;
-  border-radius: 16px;
-  background: #ffffff;
+  border: 1px solid var(--border-color-light);
+  border-radius: var(--radius-xl);
+  background: var(--color-white);
   padding: 18px;
-  box-shadow: 0 10px 28px rgba(17, 24, 39, 0.08);
-  height: fit-content;
+  box-shadow: var(--shadow-md);
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
   position: sticky;
   top: 16px;
 }
@@ -276,7 +520,7 @@
   margin: 0 0 16px;
   font-size: 1.25rem;
   font-weight: 900;
-  color: #111827;
+  color: var(--color-primary);
 }
 
 /* ============================================================================
@@ -284,15 +528,21 @@
    ============================================================================ */
 
 .venue-room-detail {
-  border-radius: 12px;
-  background: #f9fafb;
+  border-radius: var(--radius-md);
+  background: var(--color-light);
   padding: 14px;
   margin-bottom: 14px;
-  border: 1px solid #f3f4f6;
+  border: 1px solid var(--color-lighter);
+  transition: all 0.2s ease;
+}
+
+.venue-room-detail:hover {
+  border-color: var(--border-color);
+  box-shadow: var(--shadow-sm);
 }
 
 .venue-room-detail.empty {
-  color: #6b7280;
+  color: var(--color-secondary);
   text-align: center;
   padding: 24px 14px;
   font-size: 0.95rem;
@@ -302,7 +552,7 @@
   margin: 0 0 8px;
   font-size: 1.05rem;
   font-weight: 800;
-  color: #111827;
+  color: var(--color-primary);
 }
 
 .venue-room-detail p {
@@ -310,10 +560,6 @@
   color: #4b5563;
   font-size: 0.9rem;
   line-height: 1.5;
-}
-
-.venue-room-detail p:last-child {
-  margin-bottom: 0;
 }
 
 .venue-room-detail ul {
@@ -333,7 +579,7 @@
 
 .venue-room-type {
   display: inline-flex;
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   padding: 5px 11px;
   background: #e5e7eb;
   color: #374151;
@@ -374,7 +620,7 @@
 
 .venue-room-meta {
   font-size: 0.85rem;
-  color: #6b7280;
+  color: var(--color-secondary);
   margin-top: 8px;
 }
 
@@ -394,17 +640,9 @@
   width: 6px;
 }
 
-.venue-room-list::-webkit-scrollbar-track {
-  background: transparent;
-}
-
 .venue-room-list::-webkit-scrollbar-thumb {
-  background: #d1d5db;
+  background: var(--border-color);
   border-radius: 3px;
-}
-
-.venue-room-list::-webkit-scrollbar-thumb:hover {
-  background: #9ca3af;
 }
 
 .venue-room-list button {
@@ -413,72 +651,71 @@
   align-items: center;
   gap: 8px;
   width: 100%;
-  border: 1px solid #e5e7eb;
-  background: #ffffff;
-  border-radius: 12px;
   padding: 11px 12px;
-  text-align: left;
+  border: 1px solid var(--border-color-light);
+  background: var(--color-white);
+  border-radius: var(--radius-md);
   cursor: pointer;
   transition: all 0.2s ease;
+  text-align: left;
 }
 
 .venue-room-list button:hover {
-  border-color: #c8102e;
+  border-color: var(--color-accent);
   background: #fff5f6;
   box-shadow: 0 2px 8px rgba(200, 16, 46, 0.1);
+  transform: translateY(-1px);
+}
+
+.venue-room-list button:focus {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
 }
 
 .venue-room-list button.selected {
-  border-color: #c8102e;
+  border-color: var(--color-accent);
   background: #fff5f6;
   box-shadow: 0 2px 8px rgba(200, 16, 46, 0.15);
 }
 
 .venue-room-list span {
   font-weight: 700;
-  color: #111827;
+  color: var(--color-primary);
   font-size: 0.95rem;
 }
 
 .venue-room-list small {
-  color: #6b7280;
+  color: var(--color-secondary);
   text-transform: capitalize;
   font-size: 0.8rem;
   font-weight: 500;
 }
 
 /* ============================================================================
-   RESPONSIVE
+   RESPONSIVE DESIGN
    ============================================================================ */
 
 @media (max-width: 1024px) {
   .venue-map-layout {
     grid-template-columns: 1fr;
   }
-
   .venue-room-panel {
     position: static;
+    max-height: none;
   }
 }
 
 @media (max-width: 900px) {
   .venue-map-header {
     flex-direction: column;
-    gap: 12px;
+    gap: var(--space-md);
   }
-
   .venue-map-header h2 {
     font-size: 1.5rem;
   }
-
   .venue-map-image {
     min-width: 760px;
   }
-
-  .venue-map-layout {
-    grid-template-columns: 1fr;
-  }
-
   .venue-room-panel {
     order: -1;
   }
@@ -488,42 +725,103 @@
   .venue-map-page {
     padding: 12px;
   }
-
   .venue-map-header {
-    margin-bottom: 16px;
+    flex-direction: column;
+    margin-bottom: var(--space-lg);
   }
-
   .venue-map-header h2 {
     font-size: 1.35rem;
   }
-
   .venue-level-tabs {
     gap: 6px;
   }
-
   .venue-level-tabs button {
     padding: 7px 12px;
     font-size: 0.9rem;
   }
-
   .venue-map-layout {
-    gap: 16px;
+    gap: var(--space-lg);
   }
-
   .venue-map-image {
     min-width: 600px;
   }
-
   .venue-room-panel {
     padding: 14px;
   }
-
   .venue-room-panel h3 {
     font-size: 1.1rem;
-    margin-bottom: 12px;
+    margin-bottom: var(--space-md);
   }
-
   .venue-room-list {
     max-height: 360px;
+  }
+  .venue-map-toggle-legend {
+    gap: 6px;
+  }
+  .venue-map-toggle-legend button {
+    padding: 5px 8px;
+    font-size: 10px;
+  }
+.venue-map-image-wrap {
+    position: relative;
+    width: 100%;
+    height: 100%; /* ✅ CHANGED: Full remaining height */
+    min-height: 500px;
+    overflow: auto;
+    border-radius: var(--radius-lg);
+    background-color: var(--color-background);
+    border: 1px solid var(--border-color);
+    cursor: grab;
+    user-select: none;
+    scroll-behavior: smooth;
+    flex: 1; /* ✅ ADDED: Take remaining space */
+}
+}
+
+@media (max-width: 480px) {
+  .venue-map-page {
+    padding: 8px;
+  }
+  .venue-map-header h2 {
+    font-size: 1.2rem;
+  }
+  .venue-map-header p {
+    font-size: 0.85rem;
+  }
+  .venue-level-tabs button {
+    padding: 6px 10px;
+    font-size: 0.85rem;
+  }
+  .venue-map-image {
+    min-width: 500px;
+  }
+  .venue-room-panel {
+    padding: 12px;
+  }
+  .venue-room-detail {
+    padding: 10px;
+    margin-bottom: 10px;
+  }
+  .venue-room-list {
+    max-height: 300px;
+  }
+  .venue-map-topbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .venue-map-zoom-controls {
+    gap: 4px;
+  }
+  .zoom-button {
+    width: 24px;
+    height: 24px;
+    font-size: 14px;
+  }
+  .zoom-level {
+    min-width: 35px;
+    font-size: 11px;
+  }
+  .venue-map-image-wrap {
+    min-height: 350px;
   }
 }
