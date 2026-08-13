@@ -8,9 +8,10 @@
     "build": "vite build"
   },
   "dependencies": {
-    "vite": "latest",
+    "lucide-react": "latest",
+    "qrcode.react": "^4.2.0",
     "react": "latest",
     "react-dom": "latest",
-    "lucide-react": "latest"
+    "vite": "latest"
   }
 }
