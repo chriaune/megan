@@ -6,9 +6,11 @@ import {
   MessageCircle,
   Mic,
   Phone,
+  Trophy,
   Plus,
   Send,
 } from "lucide-react";
+
 import "./styles.css";
 import banner from "./assets/header-banner.png";
 import logo from "./assets/magna-logo.png";
@@ -31,6 +33,14 @@ import { travelInfo } from "./data/travel.js";
 // ============================================================================
 // CONSTANTS & TYPES
 // ============================================================================
+
+function generateBadgeCode() {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  return Array.from(
+    { length: 6 },
+    () => chars[Math.floor(Math.random() * chars.length)]
+  ).join("");
+}
 
 const guestUser = {
   id: "guest",
@@ -66,7 +76,7 @@ const MESSAGE_TYPES = {
   REMINDER: "reminder",
   WIFI: "wifi",
   TRAVEL: "travel",
-  MAGIC_LINK: "magicLink"
+  MAGIC_LINK: "magicLink",
 };
 
 const STORAGE_KEYS = {
@@ -110,7 +120,6 @@ const isCurrentSession = (session, conferenceNow) => {
 const canCheckInToSession = (session, conferenceNow) => {
   const conferenceDate = conferenceNow.toISOString().slice(0, 10);
 
-  // Can only check in on the session's date
   if (session.date !== conferenceDate) return false;
 
   const nowMinutes =
@@ -118,7 +127,6 @@ const canCheckInToSession = (session, conferenceNow) => {
   const startMinutes = toMinutes(session.start);
   const endMinutes = toMinutes(session.end);
 
-  // Check-in window: 15 minutes before start until session ends
   const checkInOpenMinutes = startMinutes - CHECK_IN_WINDOW_MINUTES;
 
   return nowMinutes >= checkInOpenMinutes && nowMinutes < endMinutes;
@@ -158,26 +166,15 @@ const formatDateLabel = (dateStr) => {
 // COMPONENTS
 // ============================================================================
 
-function PCard({
-  p,
-  sub,
-  onConnect,
-  action = "Connect"
-}) {
+function PCard({ p, sub, onConnect, action = "Connect" }) {
   return (
     <div className="person">
       <i>{initials(p.name)}</i>
-
       <div>
         <b>{p.name}</b>
         <span>{sub}</span>
       </div>
-
-      {action && (
-        <button onClick={() => onConnect?.(p)}>
-          {action}
-        </button>
-      )}
+      {action && <button onClick={() => onConnect?.(p)}>{action}</button>}
     </div>
   );
 }
@@ -191,7 +188,6 @@ function Session({
   return (
     <div className={`session ${selectedTrack ? "session-selected" : ""}`}>
       {!hideTime && <b>{s.start}</b>}
-
       <div>
         <strong>
           {selectedTrack && <span className="track-check">✓ </span>}
@@ -292,6 +288,7 @@ function Register({ complete }) {
     </div>
   );
 }
+
 function Badge({ u, openQr }) {
   if (isGuest(u)) {
     return (
@@ -301,14 +298,14 @@ function Badge({ u, openQr }) {
     );
   }
 
-const badgeQrValue = JSON.stringify({
-  type: "MEGAN_BADGE",
-  event: event.shortName,
-  attendeeId: u.id,
-  name: u.name,
-  company: u.company,
-  attendance: u.attendance,
-});
+  const badgeQrValue = JSON.stringify({
+    type: "MEGAN_BADGE",
+    event: event.shortName,
+    attendeeId: u.id,
+    name: u.name,
+    company: u.company,
+    attendance: u.attendance,
+  });
 
   return (
     <div className="badge">
@@ -317,21 +314,15 @@ const badgeQrValue = JSON.stringify({
         <span>{u.company}</span>
         <span>{u.attendance}</span>
         <em>{u.role}</em>
+        <span>
+          🎯 Badge Code: <b>{u.badgeCode}</b>
+        </span>
       </div>
 
       <div
         className="badge-qr-wrap"
         style={{ cursor: "pointer" }}
-        onClick={() =>
-          openQr(
-            JSON.stringify({
-              type: "MEGAN_BADGE",
-              attendeeId: u.id,
-              name: u.name,
-              company: u.company,
-            })
-          )
-        }
+        onClick={() => openQr(badgeQrValue)}
       >
         <QRCodeCanvas
           value={badgeQrValue}
@@ -341,10 +332,6 @@ const badgeQrValue = JSON.stringify({
           level="H"
           includeMargin={true}
         />
-  {/*
-       <div className="badge-qr-logo">
-         <img src={logolimit} alt="Magna Logo" />
-      </div> */}
       </div>
     </div>
   );
@@ -388,6 +375,13 @@ function Connect({ p, cmd }) {
           <em>Show shared phone</em>
         </span>
       </button>
+      <button onClick={() => cmd(`show badge code for ${p.name}`)}>
+        <Trophy />
+        <span>
+          <b>Bingo Code</b>
+          <em>Show verification code</em>
+        </span>
+      </button>
     </div>
   );
 }
@@ -409,7 +403,6 @@ function WelcomeMessage({ u }) {
             <li>Show WiFi</li>
             <li>Show venue map</li>
             <li>Show travel info</li>
-
           </ul>
           <p>
             To use personal features such as My Badge, MEGAN Bingo, My
@@ -709,15 +702,155 @@ function MyDayView({
   );
 }
 
-function BingoCard() {
+function BingoCard({ people, verifyBingoCode }) {
+  const [codes, setCodes] = useState({
+    speaker: "",
+    virtual: "",
+    petOwner: "",
+    languages: "",
+  });
+
+  const [completedChallenges, setCompletedChallenges] = useState({
+    speaker: false,
+    virtual: false,
+    petOwner: false,
+    languages: false,
+  });
+
+  const BINGO_CHALLENGES = [
+    {
+      id: "speaker",
+      title: "Connect with a speaker",
+      placeholder: "Speaker Badge Code",
+      description: "Find and connect with a conference speaker",
+    },
+    {
+      id: "virtual",
+      title: "Connect with a virtual attendee",
+      placeholder: "Virtual Badge Code",
+      description: "Connect with someone attending virtually",
+    },
+    {
+      id: "petOwner",
+      title: "Find a pet owner",
+      placeholder: "Pet Owner Badge Code",
+      description: "Discover someone who loves their furry friends",
+    },
+    {
+      id: "languages",
+      title: "Find someone speaking 3+ languages",
+      placeholder: "Language Badge Code",
+      description: "Meet a polyglot at the conference",
+    },
+  ];
+
+  const updateCode = (key, value) => {
+    setCodes((prev) => ({
+      ...prev,
+      [key]: value.toUpperCase(),
+    }));
+  };
+
+  const handleVerify = (key) => {
+    if (!codes[key].trim()) {
+      return;
+    }
+
+    verifyBingoCode(codes[key], key, (isValid) => {
+      if (isValid) {
+        setCompletedChallenges((prev) => ({
+          ...prev,
+          [key]: true,
+        }));
+        setCodes((prev) => ({
+          ...prev,
+          [key]: "",
+        }));
+      }
+    });
+  };
+
+  const completedCount = Object.values(completedChallenges).filter(
+    Boolean
+  ).length;
+  const totalChallenges = BINGO_CHALLENGES.length;
+  const bingoComplete = completedCount === totalChallenges;
+
   return (
     <div>
-      <h4>MEGAN Bingo</h4>
-      <div className="bingo">
-        <div className="done">✓ Connect with a speaker</div>
-        <div className="done">✓ Connect with a virtual attendee</div>
-        <div>Find a pet owner</div>
-        <div>Find someone speaking 3+ languages</div>
+      <h4>🎯 MEGAN Bingo</h4>
+
+      <div className="bingo-progress">
+        <div className="progress-bar">
+          <div
+            className="progress-fill"
+            style={{ width: `${(completedCount / totalChallenges) * 100}%` }}
+          />
+        </div>
+        <p className="progress-text">
+          {completedCount} of {totalChallenges} completed
+        </p>
+      </div>
+
+      {bingoComplete && (
+        <div className="bingo-complete-banner">
+          <h3>🎉 Bingo Complete!</h3>
+          <p>You've completed all MEGAN Bingo challenges!</p>
+        </div>
+      )}
+
+      <div className="bingo bingo-with-codes">
+        {BINGO_CHALLENGES.map((challenge) => {
+          const isCompleted = completedChallenges[challenge.id];
+          const codeValue = codes[challenge.id];
+
+          return (
+            <div
+              key={challenge.id}
+              className={`bingo-challenge ${isCompleted ? "done" : ""}`}
+            >
+              <div className="challenge-header">
+                {isCompleted && <span className="check-mark">✓</span>}
+                <strong>{challenge.title}</strong>
+              </div>
+
+              <p className="challenge-description">{challenge.description}</p>
+
+              {!isCompleted && (
+                <div className="challenge-input-group">
+                  <input
+                    type="text"
+                    placeholder={challenge.placeholder}
+                    value={codeValue}
+                    onChange={(e) => updateCode(challenge.id, e.target.value)}
+                    onKeyPress={(e) => {
+                      if (e.key === "Enter") {
+                        handleVerify(challenge.id);
+                      }
+                    }}
+                    maxLength="6"
+                    disabled={isCompleted}
+                  />
+
+                  <button
+                    className="verify-button"
+                    onClick={() => handleVerify(challenge.id)}
+                    disabled={!codeValue.trim() || isCompleted}
+                  >
+                    Verify
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="bingo-tips">
+        <p>
+          💡 <strong>Tip:</strong> Ask other attendees for their badge codes to
+          complete challenges!
+        </p>
       </div>
     </div>
   );
@@ -803,17 +936,44 @@ function VenueView({
   );
 }
 
+function ConnectionsView({ connections, people, byId, cmd }) {
+  const connectedPeople = connections.accepted
+    .map((x) => byId(x.personId))
+    .filter(Boolean);
 
-function ConnectionsView({ connections, people, byId }) {
+  const handleShowBingoCode = (personName) => {
+    cmd(`show badge code for ${personName}`);
+  };
+
   return (
     <div>
       <h4>My connections</h4>
-      {connections.accepted
-        .map((x) => byId(x.personId))
-        .filter(Boolean)
-        .map((x) => (
-          <PCard key={x.id} p={x} sub="Connected" action={null} />
-        ))}
+
+      {connectedPeople.length === 0 ? (
+        <div className="card">
+          <p>You have no accepted connections yet.</p>
+        </div>
+      ) : (
+        <div className="connections-list">
+          {connectedPeople.map((person) => (
+            <div key={person.id} className="connection-item">
+              <PCard
+                p={person}
+                sub={`${person.company} · ${person.attendance}`}
+                action="Message"
+                onConnect={() => cmd(`quick chat with ${person.name}`)}
+              />
+              <button
+                className="bingo-code-button"
+                onClick={() => handleShowBingoCode(person.name)}
+                title="View their badge code"
+              >
+                🎯 Bingo Code
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -873,6 +1033,7 @@ function OutgoingView({ connections, people, byId, abortOutgoingRequest }) {
     </div>
   );
 }
+
 function ChatView({ p }) {
   return (
     <div className="card">
@@ -913,7 +1074,6 @@ function ReminderView({ showVenueForSession }) {
     </div>
   );
 }
-
 
 function WiFiView() {
   return (
@@ -1039,6 +1199,7 @@ function Content({
   checkOutFromSession,
   openQr,
   verifyMagicLink,
+  verifyBingoCode,
   abortOutgoingRequest,
   showVenueForSession,
 }) {
@@ -1074,8 +1235,13 @@ function Content({
         u={u}
         openQr={openQr}
       />
-    ), 
-    [MESSAGE_TYPES.BINGO]: () => <BingoCard />,
+    ),
+    [MESSAGE_TYPES.BINGO]: () => (
+      <BingoCard
+        people={people}
+        verifyBingoCode={verifyBingoCode}
+      />
+    ),
     [MESSAGE_TYPES.SUGGESTIONS]: () => (
       <SuggestionsView people={people} u={u} connect={connect} />
     ),
@@ -1100,15 +1266,15 @@ function Content({
         cancelSignOut={cancelSignOut}
       />
     ),
-[MESSAGE_TYPES.VENUE]: () => (
-  <VenueView
-    u={u}
-    sessions={sessions}
-    focusSessionId={m.focusSessionId}
-    focusMode={m.focusMode}
-    selectedTracks={selectedTracks}
-  />
-),
+    [MESSAGE_TYPES.VENUE]: () => (
+      <VenueView
+        u={u}
+        sessions={sessions}
+        focusSessionId={m.focusSessionId}
+        focusMode={m.focusMode}
+        selectedTracks={selectedTracks}
+      />
+    ),
     [MESSAGE_TYPES.CONNECT]: () => {
       const p = byId(m.personId);
       return p ? (
@@ -1118,7 +1284,12 @@ function Content({
       );
     },
     [MESSAGE_TYPES.CONNECTIONS]: () => (
-      <ConnectionsView connections={connections} people={people} byId={byId} />
+      <ConnectionsView
+        connections={connections}
+        people={people}
+        byId={byId}
+        cmd={cmd}
+      />
     ),
     [MESSAGE_TYPES.INCOMING]: () => (
       <IncomingView
@@ -1212,7 +1383,6 @@ function App() {
   const [input, setInput] = useState("");
   const [ready, setReady] = useState(false);
 
-  // Initialize storage keys - will be updated when user loads
   const [selectedTracks, setSelectedTracks] = useLocalStorage(
     STORAGE_KEYS.SELECTED_TRACKS,
     {}
@@ -1224,7 +1394,10 @@ function App() {
 
   const ref = useRef(null);
 
-  // Initialize app
+  // ========================================================================
+  // INITIALIZATION
+  // ========================================================================
+
   useEffect(() => {
     (async () => {
       try {
@@ -1257,6 +1430,10 @@ function App() {
     })();
   }, []);
 
+  // ========================================================================
+  // MESSAGE HELPERS
+  // ========================================================================
+
   const append = (message) => {
     setMsgs((current) => [...current, message]);
   };
@@ -1281,80 +1458,136 @@ function App() {
       });
     }, 0);
   };
+
+  // ========================================================================
+  // AUTHENTICATION & REGISTRATION
+  // ========================================================================
+
   async function verifyMagicLink(token) {
-  if (!pendingRegistration) {
-    say(MESSAGE_TYPES.TEXT, "No pending registration found. Please register again.");
-    return;
+    if (!pendingRegistration) {
+      say(MESSAGE_TYPES.TEXT, "No pending registration found. Please register again.");
+      return;
+    }
+
+    if (pendingRegistration.token !== token) {
+      say(MESSAGE_TYPES.TEXT, "Invalid verification link. Please request a new one.");
+      return;
+    }
+
+    const isExpired =
+      new Date(pendingRegistration.expiresAt).getTime() < Date.now();
+
+    if (isExpired) {
+      setPendingRegistration(null);
+      say(MESSAGE_TYPES.TEXT, "This verification link has expired. Please register again.");
+      return;
+    }
+
+    try {
+      const result = await attendeeService.register(pendingRegistration.form);
+      result.person.badgeCode = generateBadgeCode();
+      setPeople(await attendeeService.getAll());
+      setU(result.person);
+      setProfileMenuOpen(false);
+      setPendingRegistration(null);
+
+      localStorage.setItem(
+        STORAGE_KEYS.ACTIVE_USER,
+        JSON.stringify(result.person)
+      );
+
+      say(
+        MESSAGE_TYPES.TEXT,
+        result.vendor
+          ? `Verification successful. Welcome ${result.person.name}. MEGAN recognized ${result.vendor.name}. Your profile was saved.`
+          : `Verification successful. Welcome ${result.person.name}. Your profile was saved. Registered Mode is now active.`
+      );
+
+      scrollToBottom();
+    } catch (error) {
+      console.error("Magic link verification error:", error);
+      say(MESSAGE_TYPES.TEXT, "Verification failed. Please try again.");
+    }
   }
 
-  if (pendingRegistration.token !== token) {
-    say(MESSAGE_TYPES.TEXT, "Invalid verification link. Please request a new one.");
-    return;
-  }
+  async function register(form) {
+    const token = crypto.randomUUID();
 
-  const isExpired =
-    new Date(pendingRegistration.expiresAt).getTime() < Date.now();
+    const pending = {
+      form,
+      token,
+      createdAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+    };
 
-  if (isExpired) {
-    setPendingRegistration(null);
-    say(MESSAGE_TYPES.TEXT, "This verification link has expired. Please register again.");
-    return;
-  }
+    setPendingRegistration(pending);
 
-  try {
-    const result = await attendeeService.register(pendingRegistration.form);
-
-    setPeople(await attendeeService.getAll());
-    setU(result.person);
-    setProfileMenuOpen(false);
-    setPendingRegistration(null);
-
-    localStorage.setItem(
-      STORAGE_KEYS.ACTIVE_USER,
-      JSON.stringify(result.person)
-    );
-
-    say(
-      MESSAGE_TYPES.TEXT,
-      result.vendor
-        ? `Verification successful. Welcome ${result.person.name}. MEGAN recognized ${result.vendor.name}. Your profile was saved.`
-        : `Verification successful. Welcome ${result.person.name}. Your profile was saved. Registered Mode is now active.`
-    );
+    say(MESSAGE_TYPES.MAGIC_LINK, "", {
+      token,
+      email: form.email,
+    });
 
     scrollToBottom();
-  } catch (error) {
-    console.error("Magic link verification error:", error);
-    say(MESSAGE_TYPES.TEXT, "Verification failed. Please try again.");
   }
-}
-  async function register(form) {
-  const token = crypto.randomUUID();
 
-  const pending = {
-    form,
-    token,
-    createdAt: new Date().toISOString(),
-    expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
-  };
+  // ========================================================================
+  // BINGO VERIFICATION
+  // ========================================================================
 
-  setPendingRegistration(pending);
+  function verifyBingoCode(code, challengeType, callback) {
+    const person = people.find(
+      (p) =>
+        p.badgeCode &&
+        p.badgeCode.toUpperCase() === code.toUpperCase()
+    );
 
-  say(MESSAGE_TYPES.MAGIC_LINK, "", {
-    token,
-    email: form.email,
-  });
+    if (!person) {
+      say(MESSAGE_TYPES.TEXT, "❌ Invalid Badge Code. Please try again.");
+      callback?.(false);
+      return;
+    }
 
-  scrollToBottom();
-}
-function abortOutgoingRequest(personId) {
-  setConnections((prev) => ({
-    ...prev,
-    outgoing: prev.outgoing.filter((x) => x.personId !== personId),
-  }));
+    // Validate challenge type
+    let isValid = false;
+    let message = "";
 
-  say(MESSAGE_TYPES.TEXT, "Pending connection request was withdrawn.");
-  scrollToBottom();
-}
+    if (challengeType === "speaker" && person.role === "Speaker") {
+      isValid = true;
+      message = "✅ Bingo: Connected with a Speaker!";
+    } else if (challengeType === "virtual" && person.attendance === "Virtual") {
+      isValid = true;
+      message = "✅ Bingo: Connected with a Virtual Attendee!";
+    } else if (challengeType === "petOwner" && person.bingoFacts?.includes("Pet Owner")) {
+      isValid = true;
+      message = "✅ Bingo: Found a Pet Owner!";
+    } else if (challengeType === "languages" && person.languages?.length >= 3) {
+      isValid = true;
+      message = "✅ Bingo: Found a Polyglot!";
+    } else {
+      message = `❌ ${person.name} doesn't match this challenge. Try another code!`;
+    }
+
+    say(MESSAGE_TYPES.TEXT, message);
+    callback?.(isValid);
+  }
+
+  // ========================================================================
+  // CONNECTION MANAGEMENT
+  // ========================================================================
+
+  function abortOutgoingRequest(personId) {
+    setConnections((prev) => ({
+      ...prev,
+      outgoing: prev.outgoing.filter((x) => x.personId !== personId),
+    }));
+
+    say(MESSAGE_TYPES.TEXT, "Pending connection request was withdrawn.");
+    scrollToBottom();
+  }
+
+  // ========================================================================
+  // SESSION MANAGEMENT
+  // ========================================================================
 
   function selectTrackForGroup(groupKey, sessionId) {
     setSelectedTracks((prev) => {
@@ -1383,14 +1616,6 @@ function abortOutgoingRequest(personId) {
     }));
   }
 
-  function showVenueForSession(sessionId) {
-  say(MESSAGE_TYPES.VENUE, "", {
-    focusSessionId: sessionId,
-    focusMode: "next",
-  });
-
-  scrollToBottom();
-}
   function checkOutFromSession(sessionId) {
     setCheckedInSessions((prev) => {
       const next = { ...prev };
@@ -1398,24 +1623,30 @@ function abortOutgoingRequest(personId) {
       return next;
     });
   }
-function showVenueForSession(sessionId) {
-  say(MESSAGE_TYPES.VENUE, "", {
-    focusSessionId: sessionId,
-    focusMode: "next",
-  });
 
-  scrollToBottom();
-}
-function requestSignOut() {
-  say(MESSAGE_TYPES.CONFIRM_SIGNOUT);
-
-  setTimeout(() => {
-    ref.current?.scrollTo({
-      top: ref.current.scrollHeight,
-      behavior: "smooth",
+  function showVenueForSession(sessionId) {
+    say(MESSAGE_TYPES.VENUE, "", {
+      focusSessionId: sessionId,
+      focusMode: "next",
     });
-  }, 100);
-}
+
+    scrollToBottom();
+  }
+
+  // ========================================================================
+  // SIGN OUT
+  // ========================================================================
+
+  function requestSignOut() {
+    say(MESSAGE_TYPES.CONFIRM_SIGNOUT);
+
+    setTimeout(() => {
+      ref.current?.scrollTo({
+        top: ref.current.scrollHeight,
+        behavior: "smooth",
+      });
+    }, 100);
+  }
 
   function confirmSignOut() {
     localStorage.removeItem(STORAGE_KEYS.ACTIVE_USER);
@@ -1431,32 +1662,9 @@ function requestSignOut() {
     say(MESSAGE_TYPES.TEXT, "Sign out canceled.");
   }
 
-  function BadgeFullScreen({ open, onClose, qrValue }) {
-      if (!open) return null;
-
-      return (
-        <div className="badge-modal" onClick={onClose}>
-          <button
-            className="badge-modal-close"
-            onClick={onClose}
-          >
-            ✕
-          </button>
-
-          <div
-            className="badge-modal-content"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <QRCodeCanvas
-              value={qrValue}
-              size={320}
-              level="H"
-              includeMargin
-            />
-          </div>
-        </div>
-      );
-    }
+  // ========================================================================
+  // COMMAND ROUTING
+  // ========================================================================
 
   async function cmd(raw) {
     const q = raw.trim();
@@ -1481,8 +1689,6 @@ function requestSignOut() {
       l.includes("floorplan")
     ) {
       say(MESSAGE_TYPES.VENUE);
-    } else if (l.includes("badge")) {
-      !isGuest(u) ? say(MESSAGE_TYPES.BADGE) : need("Badge");
     } else if (l.includes("bingo")) {
       !isGuest(u) ? say(MESSAGE_TYPES.BINGO) : need("Bingo");
     } else if (
@@ -1492,6 +1698,13 @@ function requestSignOut() {
       !isGuest(u)
         ? say(MESSAGE_TYPES.VENDOR, "", { vendorId: vendor.id })
         : need("Connect Me");
+    } else if (l.includes("show badge code") && person) {
+      say(MESSAGE_TYPES.CONTACT, "", {
+        label: `${person.name}'s Bingo Code`,
+        value: person.badgeCode || "Not available",
+      });
+    } else if (l.includes("badge")) {
+      !isGuest(u) ? say(MESSAGE_TYPES.BADGE) : need("Badge");
     } else if (l.includes("my connections")) {
       !isGuest(u)
         ? say(MESSAGE_TYPES.CONNECTIONS)
@@ -1530,15 +1743,13 @@ function requestSignOut() {
       !isGuest(u) ? say(MESSAGE_TYPES.REMINDER) : need("reminders");
     } else if (l.includes("wifi")) {
       say(MESSAGE_TYPES.WIFI);
-      } else if (l.includes("wifi")) {
-        say(MESSAGE_TYPES.WIFI);
-      } else if (
-        l.includes("travel") ||
-        l.includes("hotel") ||
-        l.includes("parking") ||
-        l.includes("airport")
-      ) {
-        say(MESSAGE_TYPES.TRAVEL);
+    } else if (
+      l.includes("travel") ||
+      l.includes("hotel") ||
+      l.includes("parking") ||
+      l.includes("airport")
+    ) {
+      say(MESSAGE_TYPES.TRAVEL);
     } else {
       say(
         MESSAGE_TYPES.TEXT,
@@ -1549,6 +1760,10 @@ function requestSignOut() {
     setInput("");
     scrollToBottom();
   }
+
+  // ========================================================================
+  // RENDER
+  // ========================================================================
 
   if (!ready) return <div className="loading">Loading MEGAN…</div>;
 
@@ -1571,7 +1786,7 @@ function requestSignOut() {
         "Show my connections",
         "Connect me",
       ]
-    : ["Register", "Show travel", "Show venue map", "Show WiFi", "Show agenda",];
+    : ["Register", "Show travel", "Show venue map", "Show WiFi", "Show agenda"];
 
   return (
     <div className="stage">
@@ -1656,6 +1871,7 @@ function requestSignOut() {
                   register={register}
                   connect={connect}
                   connections={connections}
+                  verifyBingoCode={verifyBingoCode}
                   vendors={vendors}
                   confirmSignOut={confirmSignOut}
                   cancelSignOut={cancelSignOut}

@@ -1157,6 +1157,38 @@ form button.mic:hover {
   cursor: not-allowed;
 }
 
+.bingo-with-codes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.bingo-challenge {
+  padding: 12px;
+  border-radius: 14px;
+  background: #f2f2f2;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bingo-challenge.done {
+  background: #c9002b;
+  color: white;
+}
+
+.bingo-challenge input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+.bingo-challenge button {
+  width: 100%;
+}
+
 .connect-options > button svg {
   color: var(--red);
   width: 20px;
@@ -1164,10 +1196,12 @@ form button.mic:hover {
   flex-shrink: 0;
 }
 
-.connect-options > button span,
+.connect-options > button span {
+min-width: 0;
+}
 .connect-options > button b,
 .connect-options > button em {
-  display: block;
+  white-space: normal;
 }
 
 .connect-options > button b {
@@ -1297,4 +1331,4 @@ form button.mic:hover {
 
 .travel-section p {
   margin: 0.15rem 0 0;
-}
+} 
