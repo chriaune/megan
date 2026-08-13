@@ -399,6 +399,26 @@ export default function VenueMap({
     });
   }, [selectedRoom]);
 
+  useEffect(() => {
+      if (!focusSessionId) return;
+
+      const session = sessions.find(
+        (s) => s.id === focusSessionId
+      );
+
+      if (!session) return;
+
+      setSelectedMode("next");
+
+      const marker = venueMarkers.find(
+        (m) => m.room === session.room
+      );
+
+      if (!marker) return;
+
+      centerMapOn(marker.x, marker.y);
+    }, [focusSessionId]);
+
   // Auto-select room based on context
   useEffect(() => {
     if (selectedRoomId) return;
@@ -532,6 +552,30 @@ export default function VenueMap({
     return "";
   };
 
+  const getRoomBadgeSession = (roomId) => {
+  const schedule = schedulesByRoomId[roomId];
+
+  if (!schedule) return "";
+
+  if (isGuestUser) {
+    return schedule.current?.title || schedule.next?.title || "";
+  }
+
+  const currentSession = myCurrentSessions.find(
+    (s) => getRoomForSession(s, rooms)?.id === roomId
+  );
+
+  if (currentSession) {
+    return currentSession.title;
+  }
+
+  const nextSession = myNextSessions.find(
+    (s) => getRoomForSession(s, rooms)?.id === roomId
+  );
+
+  return nextSession?.title || "";
+};
+
   const getMarkerIcon = (room) => {
     if (room.type === MARKER_TYPES.RESTROOM) return "WC";
     if (room.type === MARKER_TYPES.ELEVATOR) return "↕";
@@ -662,6 +706,7 @@ return (
             {/* Markers */}
             {visibleRooms.map((room) => {
               const badge = getRoomBadge(room.id);
+              const badgeSession = getRoomBadgeSession(room.id);
               const icon = getMarkerIcon(room);
 
               return (
@@ -680,9 +725,19 @@ return (
                   {icon && (
                     <span className="venue-map-marker-dot">{icon}</span>
                   )}
-                  {badge && (
-                    <span className="venue-map-marker-badge">{badge}</span>
-                  )}
+{badge && (
+  <span className="venue-map-marker-badge">
+    <span className="badge-status">
+      {badge}
+    </span>
+
+    {badgeSession && (
+      <span className="badge-session">
+        {badgeSession}
+      </span>
+    )}
+  </span>
+)}
                 </button>
               );
             })}

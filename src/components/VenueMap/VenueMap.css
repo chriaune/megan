@@ -739,6 +739,22 @@
     order: -1;
   }
 }
+.badge-status {
+  display: block;
+  font-weight: 700;
+  font-size: 11px;
+}
+
+.badge-session {
+  display: block;
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 @media (max-width: 640px) {
   .venue-map-page {
