@@ -12,6 +12,8 @@ import {
 import "./styles.css";
 import banner from "./assets/header-banner.png";
 import logo from "./assets/magna-logo.png";
+import logolimit from "./assets/magna-logo-limited.png";
+import { QRCodeCanvas } from "qrcode.react";
 import avatar from "./assets/megan-avatar.png";
 import { event, currentConferenceDate, days } from "./data/event.js";
 import { bingoFacts, wifi } from "./data/misc.js";
@@ -24,6 +26,7 @@ import {
   chatService,
   serviceConfig,
 } from "./services/index.js";
+import { travelInfo } from "./data/travel.js";
 
 // ============================================================================
 // CONSTANTS & TYPES
@@ -62,6 +65,8 @@ const MESSAGE_TYPES = {
   CONTACT: "contact",
   REMINDER: "reminder",
   WIFI: "wifi",
+  TRAVEL: "travel",
+  MAGIC_LINK: "magicLink"
 };
 
 const STORAGE_KEYS = {
@@ -153,15 +158,26 @@ const formatDateLabel = (dateStr) => {
 // COMPONENTS
 // ============================================================================
 
-function PCard({ p, sub, onConnect, action = "Connect" }) {
+function PCard({
+  p,
+  sub,
+  onConnect,
+  action = "Connect"
+}) {
   return (
     <div className="person">
       <i>{initials(p.name)}</i>
+
       <div>
         <b>{p.name}</b>
         <span>{sub}</span>
       </div>
-      {action && <button onClick={() => onConnect?.(p)}>{action}</button>}
+
+      {action && (
+        <button onClick={() => onConnect?.(p)}>
+          {action}
+        </button>
+      )}
     </div>
   );
 }
@@ -271,13 +287,12 @@ function Register({ complete }) {
           })
         }
       >
-        Simulate magic link verification
+        Simulate verification link
       </button>
     </div>
   );
 }
-
-function Badge({ u }) {
+function Badge({ u, openQr }) {
   if (isGuest(u)) {
     return (
       <div className="card">
@@ -285,6 +300,15 @@ function Badge({ u }) {
       </div>
     );
   }
+
+const badgeQrValue = JSON.stringify({
+  type: "MEGAN_BADGE",
+  event: event.shortName,
+  attendeeId: u.id,
+  name: u.name,
+  company: u.company,
+  attendance: u.attendance,
+});
 
   return (
     <div className="badge">
@@ -294,13 +318,33 @@ function Badge({ u }) {
         <span>{u.attendance}</span>
         <em>{u.role}</em>
       </div>
-      <div className="qr">
-        {Array.from({ length: 64 }).map((_, i) => (
-          <span
-            className={i % 3 === 0 || i % 7 === 0 ? "on" : ""}
-            key={i}
-          />
-        ))}
+
+      <div
+        className="badge-qr-wrap"
+        style={{ cursor: "pointer" }}
+        onClick={() =>
+          openQr(
+            JSON.stringify({
+              type: "MEGAN_BADGE",
+              attendeeId: u.id,
+              name: u.name,
+              company: u.company,
+            })
+          )
+        }
+      >
+        <QRCodeCanvas
+          value={badgeQrValue}
+          size={118}
+          bgColor="#ffffff"
+          fgColor="#000000"
+          level="H"
+          includeMargin={true}
+        />
+  {/*
+       <div className="badge-qr-logo">
+         <img src={logolimit} alt="Magna Logo" />
+      </div> */}
       </div>
     </div>
   );
@@ -364,6 +408,8 @@ function WelcomeMessage({ u }) {
             <li>Show agenda</li>
             <li>Show WiFi</li>
             <li>Show venue map</li>
+            <li>Show travel info</li>
+
           </ul>
           <p>
             To use personal features such as My Badge, MEGAN Bingo, My
@@ -736,7 +782,13 @@ function ConfirmSignOutView({ confirmSignOut, cancelSignOut }) {
   );
 }
 
-function VenueView({ u, sessions, focusSessionId, selectedTracks }) {
+function VenueView({
+  u,
+  sessions,
+  focusSessionId,
+  focusMode,
+  selectedTracks,
+}) {
   return (
     <div>
       <VenueMap
@@ -744,12 +796,13 @@ function VenueView({ u, sessions, focusSessionId, selectedTracks }) {
         sessions={sessions}
         now={new Date(event.current)}
         focusSessionId={focusSessionId}
-        selectedTracks={selectedTracks || {}} // ✅ Ensure it's always an object
-        // onCheckIn={onCheckIn}
+        focusMode={focusMode}
+        selectedTracks={selectedTracks || {}}
       />
     </div>
   );
 }
+
 
 function ConnectionsView({ connections, people, byId }) {
   return (
@@ -785,20 +838,41 @@ function IncomingView({ connections, people, byId, connect }) {
   );
 }
 
-function OutgoingView({ connections, people, byId }) {
+function OutgoingView({ connections, people, byId, abortOutgoingRequest }) {
+  const outgoingPeople = connections.outgoing
+    .map((x) => byId(x.personId))
+    .filter(Boolean);
+
   return (
     <div>
       <h4>Pending outgoing</h4>
-      {connections.outgoing
-        .map((x) => byId(x.personId))
-        .filter(Boolean)
-        .map((x) => (
-          <PCard key={x.id} p={x} sub="Waiting for response" action={null} />
-        ))}
+
+      {outgoingPeople.length === 0 ? (
+        <div className="card">
+          <p>You have no pending outgoing requests.</p>
+        </div>
+      ) : (
+        outgoingPeople.map((x) => (
+          <div className="person" key={x.id}>
+            <i>{initials(x.name)}</i>
+
+            <div>
+              <b>{x.name}</b>
+              <span>Waiting for response</span>
+            </div>
+
+            <button
+              className="abort-request-button"
+              onClick={() => abortOutgoingRequest(x.id)}
+            >
+              Abort
+            </button>
+          </div>
+        ))
+      )}
     </div>
   );
 }
-
 function ChatView({ p }) {
   return (
     <div className="card">
@@ -819,20 +893,127 @@ function ContactView({ label, value }) {
   );
 }
 
-function ReminderView() {
+function ReminderView({ showVenueForSession }) {
+  const reminderSessionId = "mgit-vendor-fair";
+
   return (
     <div className="card">
       <h4>🔔 Starts in 15 minutes</h4>
+
       <b>MGIT and Vendor Fair</b>
+
+      <p>📍 Vendor Fair Area</p>
+
+      <button
+        className="red"
+        onClick={() => showVenueForSession(reminderSessionId)}
+      >
+        🗺 Show in Venue Map
+      </button>
     </div>
   );
 }
+
 
 function WiFiView() {
   return (
     <div className="card">
       <b>SSID: {wifi.ssid}</b>
       <span>Password: {wifi.password}</span>
+    </div>
+  );
+}
+
+function TravelView() {
+  return (
+    <div className="card">
+      <h4 style={{ marginBottom: "12px" }}>
+        🚗 Travel & Hotel
+      </h4>
+
+      <div className="travel-section">
+        <h5>🏨 Hotel</h5>
+
+        <p>
+          {travelInfo.hotel.name}
+          <br />
+          {travelInfo.hotel.addressLine1}
+          <br />
+          {travelInfo.hotel.addressLine2}
+        </p>
+
+        <button
+          className="red"
+          onClick={() =>
+            window.open(travelInfo.hotel.mapsUrl, "_blank")
+          }
+        >
+          🗺 Open in Maps
+        </button>
+      </div>
+
+      <div className="travel-section">
+        <h5>📞 Contact</h5>
+
+        <button
+          className="red"
+          onClick={() =>
+            (window.location.href = `tel:${travelInfo.hotel.phone}`)
+          }
+        >
+          Call Hotel
+        </button>
+
+        <p>{travelInfo.hotel.phone}</p>
+      </div>
+
+      <div className="travel-section">
+        <h5>🅿 Parking</h5>
+
+        <p>{travelInfo.parking.description}</p>
+      </div>
+
+      <div className="travel-section">
+        <h5>✈ Airport</h5>
+
+        <p>{travelInfo.airport.name}</p>
+      </div>
+    </div>
+  );
+}
+
+function MagicLinkView({ email, token, verifyMagicLink }) {
+  const demoLink = `${window.location.origin}/verify?token=${token}`;
+
+  return (
+    <div className="card magic-link-card">
+      <h4>📧 Verification link sent</h4>
+
+      <p>
+        A verification link was sent to:
+        <br />
+        <strong>{email}</strong>
+      </p>
+
+      <p>
+        For this demo, the email delivery is simulated. Click the verification
+        link below to activate your MEGAN profile.
+      </p>
+
+      <div className="magic-link-box">
+        {demoLink}
+      </div>
+
+      <button
+        className="red"
+        onClick={() => verifyMagicLink(token)}
+      >
+        Verify and continue
+      </button>
+
+      <small>
+        Demo token expires after 15 minutes.
+      </small>
     </div>
   );
 }
@@ -856,6 +1037,10 @@ function Content({
   checkedInSessions,
   checkInToSession,
   checkOutFromSession,
+  openQr,
+  verifyMagicLink,
+  abortOutgoingRequest,
+  showVenueForSession,
 }) {
   const byId = (id) => people.find((x) => x.id === id);
 
@@ -884,10 +1069,22 @@ function Content({
         checkOutFromSession={checkOutFromSession}
       />
     ),
-    [MESSAGE_TYPES.BADGE]: () => <Badge u={u} />,
+    [MESSAGE_TYPES.BADGE]: () => (
+      <Badge
+        u={u}
+        openQr={openQr}
+      />
+    ), 
     [MESSAGE_TYPES.BINGO]: () => <BingoCard />,
     [MESSAGE_TYPES.SUGGESTIONS]: () => (
       <SuggestionsView people={people} u={u} connect={connect} />
+    ),
+    [MESSAGE_TYPES.MAGIC_LINK]: () => (
+      <MagicLinkView
+        email={m.email}
+        token={m.token}
+        verifyMagicLink={verifyMagicLink}
+      />
     ),
     [MESSAGE_TYPES.VENDOR]: () => (
       <VendorView
@@ -904,11 +1101,12 @@ function Content({
       />
     ),
 [MESSAGE_TYPES.VENUE]: () => (
-  <VenueView 
-    u={u} 
-    sessions={sessions} 
+  <VenueView
+    u={u}
+    sessions={sessions}
     focusSessionId={m.focusSessionId}
-    selectedTracks={selectedTracks} // ✅ ADD THIS LINE
+    focusMode={m.focusMode}
+    selectedTracks={selectedTracks}
   />
 ),
     [MESSAGE_TYPES.CONNECT]: () => {
@@ -931,14 +1129,24 @@ function Content({
       />
     ),
     [MESSAGE_TYPES.OUTGOING]: () => (
-      <OutgoingView connections={connections} people={people} byId={byId} />
+      <OutgoingView
+        connections={connections}
+        people={people}
+        byId={byId}
+        abortOutgoingRequest={abortOutgoingRequest}
+      />
     ),
     [MESSAGE_TYPES.CHAT]: () => <ChatView p={m.p} />,
     [MESSAGE_TYPES.CONTACT]: () => (
       <ContactView label={m.label} value={m.value} />
     ),
-    [MESSAGE_TYPES.REMINDER]: () => <ReminderView />,
+    [MESSAGE_TYPES.REMINDER]: () => (
+      <ReminderView
+        showVenueForSession={showVenueForSession}
+      />
+    ),
     [MESSAGE_TYPES.WIFI]: () => <WiFiView />,
+    [MESSAGE_TYPES.TRAVEL]: () => <TravelView />,
   };
 
   const renderer = contentMap[m.type];
@@ -991,6 +1199,9 @@ function App() {
   const [sessions, setSessions] = useState([]);
   const [vendors, setVendors] = useState([]);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [showBadgeFullscreen, setShowBadgeFullscreen] = useState(false);
+  const [pendingRegistration, setPendingRegistration] = useState(null);
+  const [badgeQrValue, SetBadgeQrValue] = useState("");
   const [connections, setConnections] = useState({
     accepted: [],
     incoming: [],
@@ -1070,25 +1281,80 @@ function App() {
       });
     }, 0);
   };
-
-  async function register(form) {
-    try {
-      const result = await attendeeService.register(form);
-      setPeople(await attendeeService.getAll());
-      setU(result.person);
-      setProfileMenuOpen(false);
-      localStorage.setItem(STORAGE_KEYS.ACTIVE_USER, JSON.stringify(result.person));
-      say(
-        MESSAGE_TYPES.TEXT,
-        result.vendor
-          ? `Welcome ${result.person.name}. MEGAN recognized ${result.vendor.name}. Your profile was saved.`
-          : `Welcome ${result.person.name}. Thank you for registering! How can I help you now?`
-      );
-    } catch (error) {
-      console.error("Registration error:", error);
-      say(MESSAGE_TYPES.TEXT, "Registration failed. Please try again.");
-    }
+  async function verifyMagicLink(token) {
+  if (!pendingRegistration) {
+    say(MESSAGE_TYPES.TEXT, "No pending registration found. Please register again.");
+    return;
   }
+
+  if (pendingRegistration.token !== token) {
+    say(MESSAGE_TYPES.TEXT, "Invalid verification link. Please request a new one.");
+    return;
+  }
+
+  const isExpired =
+    new Date(pendingRegistration.expiresAt).getTime() < Date.now();
+
+  if (isExpired) {
+    setPendingRegistration(null);
+    say(MESSAGE_TYPES.TEXT, "This verification link has expired. Please register again.");
+    return;
+  }
+
+  try {
+    const result = await attendeeService.register(pendingRegistration.form);
+
+    setPeople(await attendeeService.getAll());
+    setU(result.person);
+    setProfileMenuOpen(false);
+    setPendingRegistration(null);
+
+    localStorage.setItem(
+      STORAGE_KEYS.ACTIVE_USER,
+      JSON.stringify(result.person)
+    );
+
+    say(
+      MESSAGE_TYPES.TEXT,
+      result.vendor
+        ? `Verification successful. Welcome ${result.person.name}. MEGAN recognized ${result.vendor.name}. Your profile was saved.`
+        : `Verification successful. Welcome ${result.person.name}. Your profile was saved. Registered Mode is now active.`
+    );
+
+    scrollToBottom();
+  } catch (error) {
+    console.error("Magic link verification error:", error);
+    say(MESSAGE_TYPES.TEXT, "Verification failed. Please try again.");
+  }
+}
+  async function register(form) {
+  const token = crypto.randomUUID();
+
+  const pending = {
+    form,
+    token,
+    createdAt: new Date().toISOString(),
+    expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+  };
+
+  setPendingRegistration(pending);
+
+  say(MESSAGE_TYPES.MAGIC_LINK, "", {
+    token,
+    email: form.email,
+  });
+
+  scrollToBottom();
+}
+function abortOutgoingRequest(personId) {
+  setConnections((prev) => ({
+    ...prev,
+    outgoing: prev.outgoing.filter((x) => x.personId !== personId),
+  }));
+
+  say(MESSAGE_TYPES.TEXT, "Pending connection request was withdrawn.");
+  scrollToBottom();
+}
 
   function selectTrackForGroup(groupKey, sessionId) {
     setSelectedTracks((prev) => {
@@ -1117,6 +1383,14 @@ function App() {
     }));
   }
 
+  function showVenueForSession(sessionId) {
+  say(MESSAGE_TYPES.VENUE, "", {
+    focusSessionId: sessionId,
+    focusMode: "next",
+  });
+
+  scrollToBottom();
+}
   function checkOutFromSession(sessionId) {
     setCheckedInSessions((prev) => {
       const next = { ...prev };
@@ -1124,10 +1398,24 @@ function App() {
       return next;
     });
   }
+function showVenueForSession(sessionId) {
+  say(MESSAGE_TYPES.VENUE, "", {
+    focusSessionId: sessionId,
+    focusMode: "next",
+  });
 
-  function requestSignOut() {
-    say(MESSAGE_TYPES.CONFIRM_SIGNOUT);
-  }
+  scrollToBottom();
+}
+function requestSignOut() {
+  say(MESSAGE_TYPES.CONFIRM_SIGNOUT);
+
+  setTimeout(() => {
+    ref.current?.scrollTo({
+      top: ref.current.scrollHeight,
+      behavior: "smooth",
+    });
+  }, 100);
+}
 
   function confirmSignOut() {
     localStorage.removeItem(STORAGE_KEYS.ACTIVE_USER);
@@ -1142,6 +1430,33 @@ function App() {
   function cancelSignOut() {
     say(MESSAGE_TYPES.TEXT, "Sign out canceled.");
   }
+
+  function BadgeFullScreen({ open, onClose, qrValue }) {
+      if (!open) return null;
+
+      return (
+        <div className="badge-modal" onClick={onClose}>
+          <button
+            className="badge-modal-close"
+            onClick={onClose}
+          >
+            ✕
+          </button>
+
+          <div
+            className="badge-modal-content"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <QRCodeCanvas
+              value={qrValue}
+              size={320}
+              level="H"
+              includeMargin
+            />
+          </div>
+        </div>
+      );
+    }
 
   async function cmd(raw) {
     const q = raw.trim();
@@ -1181,6 +1496,11 @@ function App() {
       !isGuest(u)
         ? say(MESSAGE_TYPES.CONNECTIONS)
         : need("connections");
+    } else if (l.includes("show next venue")) {
+      say(MESSAGE_TYPES.VENUE, "", {
+        focusSessionId: "SESSION_ID_HERE",
+        focusMode: "next",
+      });
     } else if (l.includes("incoming")) {
       !isGuest(u) ? say(MESSAGE_TYPES.INCOMING) : need("incoming requests");
     } else if (l.includes("outgoing")) {
@@ -1210,6 +1530,15 @@ function App() {
       !isGuest(u) ? say(MESSAGE_TYPES.REMINDER) : need("reminders");
     } else if (l.includes("wifi")) {
       say(MESSAGE_TYPES.WIFI);
+      } else if (l.includes("wifi")) {
+        say(MESSAGE_TYPES.WIFI);
+      } else if (
+        l.includes("travel") ||
+        l.includes("hotel") ||
+        l.includes("parking") ||
+        l.includes("airport")
+      ) {
+        say(MESSAGE_TYPES.TRAVEL);
     } else {
       say(
         MESSAGE_TYPES.TEXT,
@@ -1237,12 +1566,12 @@ function App() {
     ? [
         "Show my day",
         "Show my badge",
-        "Show venue",
+        "Show venue map",
         "Show Bingo",
         "Show my connections",
         "Connect me",
       ]
-    : ["Register", "Show agenda", "Show WiFi", "Show venue"];
+    : ["Register", "Show travel", "Show venue map", "Show WiFi", "Show agenda",];
 
   return (
     <div className="stage">
@@ -1263,9 +1592,14 @@ function App() {
           <aside style={{ position: "relative" }}>
             <button
               className="profile-button"
-              onClick={() =>
-                !isGuest(u) && setProfileMenuOpen(!profileMenuOpen)
-              }
+              onClick={() => {
+                if (isGuest(u)) {
+                  say(MESSAGE_TYPES.REGISTER);
+                  scrollToBottom();
+                } else {
+                  setProfileMenuOpen(!profileMenuOpen);
+                }
+              }}
             >
               {isGuest(u) ? "Not registered yet" : u.name}
             </button>
@@ -1275,7 +1609,19 @@ function App() {
               </div>
             )}
             <span>
-              {isGuest(u) ? "Guest" : `${u.attendance} • 🔔1`}
+              {isGuest(u) ? (
+                "Guest"
+              ) : (
+                <>
+                  {u.attendance} •{" "}
+                  <button
+                    className="notification-pill"
+                    onClick={() => cmd("reminder")}
+                  >
+                    🔔 1
+                  </button>
+                </>
+              )}
             </span>
             {!isGuest(u) && (
               <small>
@@ -1284,11 +1630,11 @@ function App() {
                 </button>{" "}
                 •{" "}
                 <button onClick={() => cmd("show incoming requests")}>
-                  ↑{connections.incoming.length}
+                  📥{connections.incoming.length}
                 </button>{" "}
                 •{" "}
                 <button onClick={() => cmd("show outgoing requests")}>
-                  ↓{connections.outgoing.length}
+                  📤{connections.outgoing.length}
                 </button>
               </small>
             )}
@@ -1317,7 +1663,14 @@ function App() {
                   selectTrackForGroup={selectTrackForGroup}
                   checkedInSessions={checkedInSessions}
                   checkInToSession={checkInToSession}
+                  verifyMagicLink={verifyMagicLink}
+                  showVenueForSession={showVenueForSession}
+                  abortOutgoingRequest={abortOutgoingRequest}
                   checkOutFromSession={checkOutFromSession}
+                  openQr={(qrValue) => {
+                    SetBadgeQrValue(qrValue);
+                    setShowBadgeFullscreen(true);
+                  }}
                 />
               </div>
             </div>
@@ -1351,6 +1704,31 @@ function App() {
             <Mic />
           </button>
         </form>
+        {showBadgeFullscreen && (
+          <div
+            className="badge-modal"
+            onClick={() => setShowBadgeFullscreen(false)}
+          >
+            <button
+              className="badge-modal-close"
+              onClick={() => setShowBadgeFullscreen(false)}
+            >
+              ✕
+            </button>
+
+            <div
+              className="badge-modal-content"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <QRCodeCanvas
+                value={badgeQrValue}
+                size={320}
+                level="H"
+                includeMargin
+              />
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

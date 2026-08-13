@@ -511,12 +511,82 @@ form button.mic:hover {
 .person,
 .badge {
   display: grid;
+  align-items: center;
+  justify-content: space-between;
   gap: var(--space-sm);
   background: var(--light-secondary);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: var(--space-md);
   margin: var(--space-md) 0;
+}
+
+.badge-qr-wrap {
+  position: relative;
+  width: 110px;
+  height: 110px;
+  flex-shrink: 0;
+}
+
+.badge-qr-wrap canvas {
+  display: block;
+  width: 100px !important;
+  height: 100px !important;
+}
+
+.badge-qr-logo {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 24px;
+  height: 24px;
+  transform: translate(-50%, -50%);
+  background: #ffffff;
+  border-radius: 4px;
+  padding: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.badge-qr-logo img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.badge-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  z-index: 9999;
+}
+
+.badge-modal-content {
+  background: white;
+  padding: 20px;
+  border-radius: 16px;
+}
+
+.badge-modal-close {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+
+  width: 48px;
+  height: 48px;
+
+  border-radius: 50%;
+  border: none;
+
+  font-size: 24px;
+  font-weight: bold;
+  cursor: pointer;
 }
 
 .card label {
@@ -725,6 +795,37 @@ form button.mic:hover {
   margin-bottom: var(--space-sm);
 }
 
+.magic-link-card p {
+  margin: 8px 0;
+}
+
+.magic-link-box {
+  margin: 12px 0;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  background: #f7f7f7;
+  font-size: 12px;
+  word-break: break-all;
+  color: #333;
+}
+
+.magic-link-card small {
+  display: block;
+  margin-top: 8px;
+  color: #666;
+}
+
+.abort-request-button {
+  background: #f3f3f3;
+  color: #333;
+  border: 1px solid #ccc;
+}
+
+.abort-request-button:hover {
+  background: #e5e5e5;
+}
+
 .agenda-time-live {
   background: var(--red);
   color: var(--light);
@@ -858,6 +959,7 @@ form button.mic:hover {
    ============================================================================ */
 
 .person {
+  display: flex;
   grid-template-columns: 40px minmax(0, 1fr) auto;
   align-items: center;
 }
@@ -902,6 +1004,28 @@ form button.mic:hover {
   font-weight: 700;
   white-space: nowrap;
   transition: all var(--transition-fast);
+}
+
+.notification-button {
+  background: transparent;
+  border: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
+.notification-button:hover {
+  opacity: 0.8;
+}
+
+.notification-pill {
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.25);
+  color: white;
+  border-radius: 999px;
+  padding: 2px 8px;
+  cursor: pointer;
 }
 
 .person button:hover {
@@ -1064,19 +1188,18 @@ form button.mic:hover {
    ============================================================================ */
 
 .confirm-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-md);
-  margin-top: var(--space-md);
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .confirm-actions button {
-  padding: 9px 12px;
-  border-radius: var(--radius-lg);
-  font-weight: 900;
-  font-size: 13px;
-  transition: all var(--transition-fast);
+  flex: 1;
+  min-width: 120px;
+  white-space: nowrap;
 }
+
 
 .confirm-actions button.red {
   background: var(--red);
@@ -1162,4 +1285,16 @@ form button.mic:hover {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+.travel-section {
+  margin: 0.5rem 0;
+}
+
+.travel-section h5 {
+  margin: 0;
+}
+
+.travel-section p {
+  margin: 0.15rem 0 0;
 }
