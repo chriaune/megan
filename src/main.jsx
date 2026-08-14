@@ -13,10 +13,10 @@ import {
 
 import "./styles.css";
 import banner from "./assets/header-banner.png";
-import logo from "./assets/magna-logo.png";
-import logolimit from "./assets/magna-logo-limited.png";
+import logo from "./assets/comp-logo.png";
+import logolimit from "./assets/comp-logo-limited.png";
 import { QRCodeCanvas } from "qrcode.react";
-import avatar from "./assets/megan-avatar.png";
+import avatar from "./assets/avatar.png";
 import { event, currentConferenceDate, days } from "./data/event.js";
 import { bingoFacts, wifi } from "./data/misc.js";
 import VenueMap from "./components/VenueMap/VenueMap.jsx";
