@@ -66,7 +66,7 @@ export const sessions = [
   {
     id: "s7",
     date: "2026-11-17",
-    title: "Keynote (Magna Only)",
+    title: "Keynote (Internal Only)",
     start: "08:00",
     end: "10:00",
     room: "Main Stage",
@@ -142,7 +142,7 @@ export const sessions = [
   {
     id: "s15",
     date: "2026-11-17",
-    title: "MGIT and Vendor Fair",
+    title: "IT and Vendor Fair",
     start: "14:00",
     end: "16:30",
     room: "Conference Center Lobby",
@@ -164,7 +164,7 @@ export const sessions = [
   {
     id: "s17",
     date: "2026-11-18",
-    title: "Keynote (Magna Only)",
+    title: "Keynote (Internal Only)",
     start: "08:00",
     end: "10:00",
     room: "Main Stage",

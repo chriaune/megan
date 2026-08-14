@@ -395,7 +395,7 @@ function WelcomeMessage({ u }) {
             <b>Hello, I am M.E.G.A.N. 👋</b>
           </p>
           <p>
-            Your Magna Event Guide and Assistant for the entire conference.
+            Your Event Guide and Assistant for the entire conference.
           </p>
           <p>You can ask me:</p>
           <ul>
