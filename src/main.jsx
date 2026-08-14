@@ -133,25 +133,53 @@ const canCheckInToSession = (session, conferenceNow) => {
 };
 
 const sessionsOverlap = (a, b) => {
+  if (a.date !== b.date) {
+    return false;
+  }
+
   const aStart = toMinutes(a.start);
   const aEnd = toMinutes(a.end);
   const bStart = toMinutes(b.start);
   const bEnd = toMinutes(b.end);
+
   return aStart < bEnd && bStart < aEnd;
 };
 
 const groupOverlappingSessions = (items) => {
+  const sorted = [...items].sort((a, b) => {
+    const startCompare = toMinutes(a.start) - toMinutes(b.start);
+    if (startCompare !== 0) return startCompare;
+    return toMinutes(a.end) - toMinutes(b.end);
+  });
+
   const groups = [];
-  items.forEach((session) => {
-    const matchingGroup = groups.find((group) =>
-      group.some((existingSession) => sessionsOverlap(existingSession, session))
-    );
-    if (matchingGroup) {
-      matchingGroup.push(session);
+  let currentGroup = [];
+  let currentGroupEnd = null;
+
+  sorted.forEach((session) => {
+    const sessionStart = toMinutes(session.start);
+    const sessionEnd = toMinutes(session.end);
+
+    if (
+      currentGroup.length === 0 ||
+      sessionStart >= currentGroupEnd
+    ) {
+      if (currentGroup.length > 0) {
+        groups.push(currentGroup);
+      }
+
+      currentGroup = [session];
+      currentGroupEnd = sessionEnd;
     } else {
-      groups.push([session]);
+      currentGroup.push(session);
+      currentGroupEnd = Math.max(currentGroupEnd, sessionEnd);
     }
   });
+
+  if (currentGroup.length > 0) {
+    groups.push(currentGroup);
+  }
+
   return groups;
 };
 
@@ -430,18 +458,29 @@ function AgendaView({ sessions, currentConferenceDate, days: daysList }) {
   const daySessions = sessions
     .filter((x) => x.date === agendaDay)
     .filter((x) => {
-      const [eh, em] = x.end.split(":").map(Number);
-      const endMinutes = eh * 60 + em;
-      return endMinutes >= currentMinutes;
+      if (agendaDay > currentConferenceDate) {
+        return true;
+      }
+
+      if (agendaDay === currentConferenceDate) {
+        const [eh, em] = x.end.split(":").map(Number);
+        const endMinutes = eh * 60 + em;
+
+        return endMinutes >= currentMinutes;
+      }
+
+      return false;
     })
     .sort((a, b) => a.start.localeCompare(b.start));
 
   const groupedSessions = Object.values(
     daySessions.reduce((groups, session) => {
       const key = session.start;
+
       if (!groups[key]) {
         groups[key] = [];
       }
+
       groups[key].push(session);
       return groups;
     }, {})
@@ -450,6 +489,7 @@ function AgendaView({ sessions, currentConferenceDate, days: daysList }) {
   return (
     <div>
       <h4>Agenda</h4>
+
       <div className="agenda-day-tabs">
         {daysList
           .filter((d) => d.date >= currentConferenceDate)
@@ -474,15 +514,22 @@ function AgendaView({ sessions, currentConferenceDate, days: daysList }) {
         const isCurrentGroup = group.some((s) =>
           isCurrentSession(s, conferenceNow)
         );
+
         const isParallelGroup = group.length > 1;
         const groupStart = group[0].start;
+        const parallelCount = Math.min(group.length, 4);
+
+        const groupKey = `${agendaDay}-${groupStart}-${group
+          .map((item) => item.id)
+          .sort()
+          .join("-")}`;
 
         return (
           <div
             className={`agenda-time-group ${
               isCurrentGroup ? "agenda-current-group" : ""
             }`}
-            key={`${agendaDay}-${groupStart}`}
+            key={groupKey}
           >
             <div
               className={`agenda-time-label ${
@@ -495,18 +542,28 @@ function AgendaView({ sessions, currentConferenceDate, days: daysList }) {
               )}
             </div>
 
+            {isParallelGroup && (
+              <div className="track-picker-label">
+                Parallel sessions
+              </div>
+            )}
+
             <div
               className={
                 isParallelGroup
                   ? "agenda-session-row agenda-session-row-parallel"
                   : "agenda-session-row"
               }
+              style={{
+                "--parallel-count": parallelCount,
+              }}
             >
               {group.map((x) => (
                 <Session
                   key={x.id}
                   s={x}
-                  hideTime={isParallelGroup}
+                  hideTime={false}
+                  current={isCurrentSession(x, conferenceNow)}
                 />
               ))}
             </div>
@@ -543,6 +600,7 @@ function MyDayView({
       if (day === currentConferenceDate) {
         const [eh, em] = x.end.split(":").map(Number);
         const endMinutes = eh * 60 + em;
+
         return endMinutes >= currentMinutes;
       }
 
@@ -550,11 +608,53 @@ function MyDayView({
     })
     .sort((a, b) => a.start.localeCompare(b.start));
 
-  const groupedSessions = groupOverlappingSessions(daySessions);
+  const groupedSessions = Object.values(
+    daySessions.reduce((groups, session) => {
+      const key = session.start;
+
+      if (!groups[key]) {
+        groups[key] = [];
+      }
+
+      groups[key].push(session);
+      return groups;
+    }, {})
+  );
+
+  const selectedSessions = sessions.filter((s) => selectedTracks?.[s.id]);
+
+  const conflicts = [];
+
+  selectedSessions.forEach((a, index) => {
+    selectedSessions.slice(index + 1).forEach((b) => {
+      if (sessionsOverlap(a, b)) {
+        conflicts.push([a, b]);
+      }
+    });
+  });
+
+  const selectedCount = Object.keys(selectedTracks || {}).length;
 
   return (
     <div>
       <h4>My Day</h4>
+
+      <p>
+        {selectedCount} session
+        {selectedCount !== 1 ? "s" : ""} selected
+      </p>
+
+      {conflicts.length > 0 && (
+        <div className="conflict-warning">
+          <strong>⚠ Schedule Conflicts</strong>
+
+          {conflicts.map(([a, b], idx) => (
+            <div key={idx}>
+              {a.title} ↔ {b.title}
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="agenda-day-tabs">
         {daysList
@@ -574,10 +674,12 @@ function MyDayView({
         const isCurrentGroup = group.some((s) =>
           isCurrentSession(s, conferenceNow)
         );
+
         const isParallelGroup = group.length > 1;
         const groupStart = group.map((x) => x.start).sort()[0];
+        const parallelCount = Math.min(group.length, 4);
 
-        const groupKey = `${day}-${group
+        const groupKey = `${day}-${groupStart}-${group
           .map((item) => item.id)
           .sort()
           .join("-")}`;
@@ -596,65 +698,45 @@ function MyDayView({
             >
               {groupStart}
             </div>
+
             {isParallelGroup && (
               <div className="track-picker-label">
-                Choose your preferred session
+                Parallel sessions
               </div>
             )}
+
             <div
               className={
                 isParallelGroup
                   ? "agenda-session-row agenda-session-row-parallel"
                   : "agenda-session-row"
               }
+              style={{
+                "--parallel-count": parallelCount,
+              }}
             >
               {group.map((x) => {
-                const selectedSessionId = selectedTracks[groupKey];
-                const isSelectedTrack = selectedSessionId === x.id;
+                const isSelectedTrack = Boolean(selectedTracks?.[x.id]);
                 const isCurrentTrack = isCurrentSession(x, conferenceNow);
                 const canCheckIn = canCheckInToSession(x, conferenceNow);
-                const checkInData = checkedInSessions[x.id];
+                const checkInData = checkedInSessions?.[x.id];
                 const isCheckedIn = checkInData?.checkedIn;
 
-                if (!isParallelGroup) {
-                  return (
-                    <div key={x.id} className="track-session-content">
-                      <Session
-                        s={x}
-                        hideTime={false}
-                        current={isCurrentTrack}
-                      />
-                      {canCheckIn && (
-                        <button
-                          type="button"
-                          className={`checkin-button ${isCheckedIn ? "checked-in" : ""}`}
-                          onClick={() => checkInToSession(x.id)}
-                          disabled={isCheckedIn}
-                        >
-                          {isCheckedIn ? "✓ Checked in" : "Check in"}
-                        </button>
-                      )}
-                      {isCheckedIn && !canCheckIn && (
-                        <button
-                          type="button"
-                          className="checkout-button"
-                          onClick={() => checkOutFromSession(x.id)}
-                        >
-                          Check out
-                        </button>
-                      )}
-                    </div>
-                  );
-                }
-
                 return (
-                  <button
+                  <div
                     key={x.id}
-                    type="button"
+                    role="button"
+                    tabIndex={0}
                     className={`track-session-button is-selectable ${
                       isSelectedTrack ? "is-selected" : ""
                     }`}
-                    onClick={() => selectTrackForGroup(groupKey, x.id)}
+                    onClick={() => selectTrackForGroup(null, x.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        selectTrackForGroup(null, x.id);
+                      }
+                    }}
                   >
                     <div className="track-session-content">
                       <Session
@@ -663,6 +745,7 @@ function MyDayView({
                         selectedTrack={isSelectedTrack}
                         current={isCurrentTrack}
                       />
+
                       {isSelectedTrack && canCheckIn && (
                         <button
                           type="button"
@@ -678,6 +761,7 @@ function MyDayView({
                           {isCheckedIn ? "✓ Checked in" : "Check in"}
                         </button>
                       )}
+
                       {isSelectedTrack && isCheckedIn && !canCheckIn && (
                         <button
                           type="button"
@@ -691,7 +775,7 @@ function MyDayView({
                         </button>
                       )}
                     </div>
-                  </button>
+                  </div>
                 );
               })}
             </div>
@@ -1054,20 +1138,161 @@ function ContactView({ label, value }) {
   );
 }
 
-function ReminderView({ showVenueForSession }) {
-  const reminderSessionId = "mgit-vendor-fair";
+function getSessionDateTime(session) {
+  const timeValue =
+    session.startTime ||
+    session.start ||
+    session.time ||
+    session.displayTime;
+
+  if (!timeValue) return null;
+
+  if (String(timeValue).includes("T")) {
+    const date = new Date(timeValue);
+    return isNaN(date) ? null : date;
+  }
+
+  const sessionDate = session.date || currentConferenceDate;
+  const date = new Date(`${sessionDate}T${timeValue}:00`);
+
+  return isNaN(date) ? null : date;
+}
+
+function getSessionEndDateTime(session, startDate) {
+  if (!startDate) return null;
+
+  // Prefer explicit end time if available
+  const endValue =
+    session.endTime ||
+    session.end ||
+    session.finishTime;
+
+  if (endValue) {
+    if (String(endValue).includes("T")) {
+      const endDate = new Date(endValue);
+      return isNaN(endDate) ? null : endDate;
+    }
+
+    const fallbackDate = startDate.toISOString().slice(0, 10);
+    const endDate = new Date(`${fallbackDate}T${endValue}:00`);
+    return isNaN(endDate) ? null : endDate;
+  }
+
+  // Fallback duration if no end time exists
+  const durationMinutes = session.durationMinutes || session.duration || 60;
+
+  return new Date(startDate.getTime() + durationMinutes * 60 * 1000);
+}
+
+function getReminderSession({ sessions, myAgenda, isRegistered, currentTime }) {
+  const relevantSessions = isRegistered
+    ? sessions.filter((session) => myAgenda.includes(session.id))
+    : sessions;
+
+  const sessionsWithDates = relevantSessions
+    .map((session) => {
+      const startDate = getSessionDateTime(session);
+      const endDate = getSessionEndDateTime(session, startDate);
+
+      return {
+        ...session,
+        startDate,
+        endDate,
+      };
+    })
+    .filter((session) => session.startDate && session.endDate);
+
+  // 1. First check if there is an active session
+  const activeSession = sessionsWithDates
+    .filter(
+      (session) =>
+        session.startDate <= currentTime &&
+        session.endDate > currentTime
+    )
+    .sort((a, b) => a.startDate - b.startDate)[0];
+
+  if (activeSession) {
+    return {
+      type: "active",
+      session: activeSession,
+    };
+  }
+
+  // 2. If no active session, find the next upcoming one
+  const nextSession = sessionsWithDates
+    .filter((session) => session.startDate > currentTime)
+    .sort((a, b) => a.startDate - b.startDate)[0];
+
+  if (nextSession) {
+    return {
+      type: "next",
+      session: nextSession,
+    };
+  }
+
+  return null;
+}
+
+function ReminderView({
+  sessions = [],
+  myAgenda = [],
+  isRegistered = false,
+  showVenueForSession,
+}) {
+  const currentDate = currentConferenceDate;
+const currentTime = event.current.slice(11, 16);
+
+const myDaySessions = sessions
+  .filter((s) => s.date === currentDate)
+  .filter((s) => {
+    const [eh, em] = s.end.split(":").map(Number);
+    const endMinutes = eh * 60 + em;
+
+    const [nh, nm] = currentTime.split(":").map(Number);
+    const nowMinutes = nh * 60 + nm;
+
+    return endMinutes >= nowMinutes;
+  })
+  .sort((a, b) => a.start.localeCompare(b.start));
+
+const nextSession = sessions
+  .filter(
+    (item) =>
+      item.date === currentDate &&
+      item.start > currentTime
+  )
+  .sort((a, b) => a.start.localeCompare(b.start))[0];
+
+  // Fallback: if no future My Day session exists, use next conference session
+  if (!nextSession) {
+    nextSession = sessions
+      .filter(
+        (s) =>
+          s.date === currentDate &&
+          s.start > currentTime
+      )
+      .sort((a, b) => a.start.localeCompare(b.start))[0];
+  }
+
+  if (!nextSession) {
+    return (
+      <div className="card">
+        <p>No upcoming sessions found.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="card">
-      <h4>🔔 Starts in 15 minutes</h4>
+      <h4>🔔 Starts Soon</h4>
 
-      <b>MGIT and Vendor Fair</b>
+      <b>{nextSession.title}</b>
 
-      <p>📍 Vendor Fair Area</p>
+      <p>📍 {nextSession.room}</p>
 
       <button
         className="red"
-        onClick={() => showVenueForSession(reminderSessionId)}
+        onClick={() => showVenueForSession(nextSession.id)}
       >
         🗺 Show in Venue Map
       </button>
@@ -1311,11 +1536,14 @@ function Content({
     [MESSAGE_TYPES.CONTACT]: () => (
       <ContactView label={m.label} value={m.value} />
     ),
-    [MESSAGE_TYPES.REMINDER]: () => (
-      <ReminderView
-        showVenueForSession={showVenueForSession}
-      />
-    ),
+[MESSAGE_TYPES.REMINDER]: () => (
+  <ReminderView
+    sessions={sessions}
+    myAgenda={Object.keys(selectedTracks || {})}
+    isRegistered={!isGuest(u)}
+    showVenueForSession={showVenueForSession}
+  />
+),
     [MESSAGE_TYPES.WIFI]: () => <WiFiView />,
     [MESSAGE_TYPES.TRAVEL]: () => <TravelView />,
   };
@@ -1588,23 +1816,26 @@ function App() {
   // ========================================================================
   // SESSION MANAGEMENT
   // ========================================================================
+function getSelectedSessionIds(selectedTracks) {
+  return Object.values(selectedTracks || {}).filter(Boolean);
+}
 
-  function selectTrackForGroup(groupKey, sessionId) {
-    setSelectedTracks((prev) => {
-      const alreadySelected = prev[groupKey] === sessionId;
+function isSessionSelected(sessionId, selectedTracks) {
+  return getSelectedSessionIds(selectedTracks).includes(sessionId);
+}
+function selectTrackForGroup(groupKey, sessionId) {
+  setSelectedTracks((prev) => {
+    const next = { ...(prev || {}) };
 
-      if (alreadySelected) {
-        const next = { ...prev };
-        delete next[groupKey];
-        return next;
-      }
+    if (next[sessionId]) {
+      delete next[sessionId];
+    } else {
+      next[sessionId] = true;
+    }
 
-      return {
-        ...prev,
-        [groupKey]: sessionId,
-      };
-    });
-  }
+    return next;
+  });
+}
 
   function checkInToSession(sessionId) {
     setCheckedInSessions((prev) => ({
@@ -1661,6 +1892,29 @@ function App() {
   function cancelSignOut() {
     say(MESSAGE_TYPES.TEXT, "Sign out canceled.");
   }
+
+  function toggleAttendance() {
+  setU((prev) => {
+    const nextAttendance =
+      prev.attendance === "Onsite"
+        ? "Virtual"
+        : prev.attendance === "Virtual"
+        ? "Not Attending"
+        : "Onsite";
+
+    const updatedUser = {
+      ...prev,
+      attendance: nextAttendance,
+    };
+
+    localStorage.setItem(
+      STORAGE_KEYS.ACTIVE_USER,
+      JSON.stringify(updatedUser)
+    );
+
+    return updatedUser;
+  });
+}
 
   // ========================================================================
   // COMMAND ROUTING
@@ -1823,21 +2077,29 @@ function App() {
                 <button onClick={requestSignOut}>Sign Out</button>
               </div>
             )}
-            <span>
-              {isGuest(u) ? (
-                "Guest"
-              ) : (
-                <>
-                  {u.attendance} •{" "}
-                  <button
-                    className="notification-pill"
-                    onClick={() => cmd("reminder")}
-                  >
-                    🔔 1
-                  </button>
-                </>
-              )}
-            </span>
+           <span>
+  {isGuest(u) ? (
+    "Guest"
+  ) : (
+    <>
+<button
+  className="notification-pill"
+  onClick={toggleAttendance}
+>
+  {u.attendance === "Onsite" && "🏢 Onsite"}
+  {u.attendance === "Virtual" && "💻 Virtual"}
+  {u.attendance === "Not Attending" && "❌ Away"}
+</button>
+      {" • "}
+      <button
+        className="notification-pill"
+        onClick={() => cmd("reminder")}
+      >
+        🔔 1
+      </button>
+    </>
+  )}
+</span>
             {!isGuest(u) && (
               <small>
                 <button onClick={() => cmd("show my connections")}>
