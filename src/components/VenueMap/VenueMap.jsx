@@ -199,15 +199,6 @@ export default function VenueMap({
   // STATE & REFS
   // ============================
 
-  console.log(
-  "ROOMS FROM rooms.js",
-  rooms.map((r) => ({
-    id: r.id,
-    name: r.name,
-    aliases: r.aliases,
-  }))
-);
-
   const isGuestUser = !user || user.id === "guest";
 
   const [selectedRoomId, setSelectedRoomId] = useState(null);
@@ -282,14 +273,6 @@ export default function VenueMap({
 
   // Get rooms for current sessions
   const myCurrentRooms = useMemo(() => {
-    console.log(
-  "Mapped Current Rooms",
-  myCurrentSessions.map((s) => ({
-    title: s.title,
-    room: s.room,
-    mapped: getRoomForSession(s, rooms)
-  }))
-);
     return myCurrentSessions
       .map((session) => getRoomForSession(session, rooms))
       .filter(Boolean);
@@ -301,21 +284,7 @@ export default function VenueMap({
       .map((session) => getRoomForSession(session, rooms))
       .filter(Boolean);
   }, [myNextSessions]);
-console.log(
-  "Current Rooms",
-  myCurrentSessions.map((s) => ({
-    title: s.title,
-    room: s.room,
-  }))
-);
 
-console.log(
-  "Next Rooms",
-  myNextSessions.map((s) => ({
-    title: s.title,
-    room: s.room,
-  }))
-);
   // Room IDs for current sessions
   const myCurrentRoomIds = useMemo(() => {
     return new Set(myCurrentRooms.map((room) => room.id));
@@ -369,23 +338,8 @@ console.log(
   const selectedRoom = selectedSchedule?.room;
 
   // ✅ FIXED: Filter visible rooms based on toggle buttons AND selected sessions
-  console.log("myCurrentSessions", myCurrentSessions);
-console.log("myNextSessions", myNextSessions);
 
-console.log(
-  "myCurrentRoomIds",
-  [...myCurrentRoomIds]
-);
-
-console.log(
-  "myNextRoomIds",
-  [...myNextRoomIds]
-);
 const visibleRooms = useMemo(() => {
-  console.log("Current Room IDs", [...myCurrentRoomIds]);
-console.log("Next Room IDs", [...myNextRoomIds]);
-console.log("showCurrent", showCurrent);
-console.log("showNext", showNext);
   
   return rooms.filter((room) => {
     if (!room.mapPosition) {
@@ -728,7 +682,6 @@ return (
             />
 
             {/* Markers */}
-            console.log("Visible Rooms", visibleRooms);
             {visibleRooms.map((room) => {
   if (!room.mapPosition) return null;
 
