@@ -1255,24 +1255,17 @@ const myDaySessions = sessions
   })
   .sort((a, b) => a.start.localeCompare(b.start));
 
-const nextSession = sessions
-  .filter(
-    (item) =>
-      item.date === currentDate &&
-      item.start > currentTime
-  )
-  .sort((a, b) => a.start.localeCompare(b.start))[0];
+let nextSession = myDaySessions.find(
+  (s) => s.start > currentTime
+);
 
-  // Fallback: if no future My Day session exists, use next conference session
-  if (!nextSession) {
-    nextSession = sessions
-      .filter(
-        (s) =>
-          s.date === currentDate &&
-          s.start > currentTime
-      )
-      .sort((a, b) => a.start.localeCompare(b.start))[0];
-  }
+if (!nextSession) {
+  nextSession = sessions
+    .filter((s) => s.start > currentTime)
+    .sort((a, b) =>
+      `${a.date}${a.start}`.localeCompare(`${b.date}${b.start}`)
+    )[0];
+}
 
   if (!nextSession) {
     return (
@@ -2022,7 +2015,7 @@ function selectTrackForGroup(groupKey, sessionId) {
   if (!ready) return <div className="loading">Loading MEGAN…</div>;
 
   const currentDate = currentConferenceDate;
-  const currentTime = event.current.slice(11, 16);
+ const currentTime = event?.current?.slice(11, 16) || "00:00";
   const currentDayLabel = days.find((item) => item.date === currentDate)?.label;
   const nextSession = sessions
     .filter((item) => item.date === currentDate && item.start > currentTime)
@@ -2107,11 +2100,11 @@ function selectTrackForGroup(groupKey, sessionId) {
                 </button>{" "}
                 •{" "}
                 <button onClick={() => cmd("show incoming requests")}>
-                  📥{connections.incoming.length}
+                  🔽{connections.incoming.length}
                 </button>{" "}
                 •{" "}
                 <button onClick={() => cmd("show outgoing requests")}>
-                  📤{connections.outgoing.length}
+                  🔼{connections.outgoing.length}
                 </button>
               </small>
             )}

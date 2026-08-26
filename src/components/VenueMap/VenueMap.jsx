@@ -199,6 +199,15 @@ export default function VenueMap({
   // STATE & REFS
   // ============================
 
+  console.log(
+  "ROOMS FROM rooms.js",
+  rooms.map((r) => ({
+    id: r.id,
+    name: r.name,
+    aliases: r.aliases,
+  }))
+);
+
   const isGuestUser = !user || user.id === "guest";
 
   const [selectedRoomId, setSelectedRoomId] = useState(null);
@@ -206,7 +215,7 @@ export default function VenueMap({
   const [checkedInSessionIds, setCheckedInSessionIds] = useState([]);
   const [showCurrent, setShowCurrent] = useState(true);
   const [showNext, setShowNext] = useState(false);
-  const [filterMode, setFilterMode] = useState("or"); // ✅ NEW: "and" or "or"
+  //const [filterMode, setFilterMode] = useState("or"); // ✅ NEW: "and" or "or"
   const [showToilets, setShowToilets] = useState(false);
   const [showElevators, setShowElevators] = useState(false);
   const [zoom, setZoom] = useState(ZOOM_LEVELS.DEFAULT);
@@ -273,6 +282,14 @@ export default function VenueMap({
 
   // Get rooms for current sessions
   const myCurrentRooms = useMemo(() => {
+    console.log(
+  "Mapped Current Rooms",
+  myCurrentSessions.map((s) => ({
+    title: s.title,
+    room: s.room,
+    mapped: getRoomForSession(s, rooms)
+  }))
+);
     return myCurrentSessions
       .map((session) => getRoomForSession(session, rooms))
       .filter(Boolean);
@@ -284,7 +301,21 @@ export default function VenueMap({
       .map((session) => getRoomForSession(session, rooms))
       .filter(Boolean);
   }, [myNextSessions]);
+console.log(
+  "Current Rooms",
+  myCurrentSessions.map((s) => ({
+    title: s.title,
+    room: s.room,
+  }))
+);
 
+console.log(
+  "Next Rooms",
+  myNextSessions.map((s) => ({
+    title: s.title,
+    room: s.room,
+  }))
+);
   // Room IDs for current sessions
   const myCurrentRoomIds = useMemo(() => {
     return new Set(myCurrentRooms.map((room) => room.id));
@@ -338,45 +369,53 @@ export default function VenueMap({
   const selectedRoom = selectedSchedule?.room;
 
   // ✅ FIXED: Filter visible rooms based on toggle buttons AND selected sessions
-  const visibleRooms = useMemo(() => {
-    return rooms.filter((room) => {
-      const isToilet = room.type === MARKER_TYPES.RESTROOM;
-      const isElevator = room.type === MARKER_TYPES.ELEVATOR;
+  console.log("myCurrentSessions", myCurrentSessions);
+console.log("myNextSessions", myNextSessions);
 
-      // Always show toilets and elevators if toggled
-      if (showToilets && isToilet) return true;
-      if (showElevators && isElevator) return true;
+console.log(
+  "myCurrentRoomIds",
+  [...myCurrentRoomIds]
+);
 
-      const isCurrentRoom = myCurrentRoomIds.has(room.id);
-      const isNextRoom = myNextRoomIds.has(room.id);
+console.log(
+  "myNextRoomIds",
+  [...myNextRoomIds]
+);
+const visibleRooms = useMemo(() => {
+  console.log("Current Room IDs", [...myCurrentRoomIds]);
+console.log("Next Room IDs", [...myNextRoomIds]);
+console.log("showCurrent", showCurrent);
+console.log("showNext", showNext);
+  
+  return rooms.filter((room) => {
+    if (!room.mapPosition) {
+      return false;
+    }
 
-      // ✅ NEW: AND/OR logic
-      if (filterMode === "and") {
-        // Both Current AND Next must be enabled, and room must be in both
-        if (showCurrent && showNext) {
-          return isCurrentRoom && isNextRoom;
-        }
-        // Only one is enabled, show that one
-        if (showCurrent) return isCurrentRoom;
-        if (showNext) return isNextRoom;
-        return false;
-      }
+    const isToilet = room.type === MARKER_TYPES.RESTROOM;
+    const isElevator = room.type === MARKER_TYPES.ELEVATOR;
+    const isCurrentRoom = myCurrentRoomIds.has(room.id);
+    const isNextRoom = myNextRoomIds.has(room.id);
+    const isFocusedRoom = focusedRoom?.id === room.id;
 
-      // OR mode (default): Show if in either current or next
-      return (
-        (showCurrent && isCurrentRoom) ||
-        (showNext && isNextRoom)
-      );
-    });
-  }, [
-    myCurrentRoomIds,
-    myNextRoomIds,
-    showCurrent,
-    showNext,
-    filterMode, // ✅ NEW dependency
-    showToilets,
-    showElevators,
-  ]);
+    return (
+      isFocusedRoom ||
+      (showCurrent && isCurrentRoom) ||
+      (showNext && isNextRoom) ||
+      (showToilets && isToilet) ||
+      (showElevators && isElevator)
+    );
+  });
+}, [
+  focusedRoom,
+  myCurrentRoomIds,
+  myNextRoomIds,
+  showCurrent,
+  showNext,
+  showToilets,
+  showElevators,
+]);
+
 
   // ============================
   // EFFECTS
@@ -399,25 +438,6 @@ export default function VenueMap({
     });
   }, [selectedRoom]);
 
-  useEffect(() => {
-      if (!focusSessionId) return;
-
-      const session = sessions.find(
-        (s) => s.id === focusSessionId
-      );
-
-      if (!session) return;
-
-      setSelectedMode("next");
-
-      const marker = venueMarkers.find(
-        (m) => m.room === session.room
-      );
-
-      if (!marker) return;
-
-      centerMapOn(marker.x, marker.y);
-    }, [focusSessionId]);
 
   // Auto-select room based on context
   useEffect(() => {
@@ -499,12 +519,19 @@ export default function VenueMap({
     );
   };
 
-  const handlePanStart = (e) => {
-    if (e.button !== 2 && !e.ctrlKey && !e.metaKey) return;
-    e.preventDefault();
-    setIsPanning(true);
-    setPanStart({ x: e.clientX - panX, y: e.clientY - panY });
-  };
+const handlePanStart = (e) => {
+  // Nur linke Maustaste
+  if (e.button !== 0) return;
+
+  e.preventDefault();
+
+  setIsPanning(true);
+
+  setPanStart({
+    x: e.clientX - panX,
+    y: e.clientY - panY,
+  });
+};
 
   const handlePanMove = (e) => {
     if (!isPanning) return;
@@ -537,32 +564,25 @@ export default function VenueMap({
     return MARKER_STATUS.INACTIVE;
   };
 
-  const getRoomBadge = (roomId) => {
-    if (focusedRoom && roomId === focusedRoom.id) return "HERE";
-
-    if (isGuestUser) {
-      const schedule = schedulesByRoomId[roomId];
-      if (schedule?.current) return "NOW";
-      if (schedule?.startingSoon) return "NEXT";
-      return "";
-    }
-
-    if (myCurrentRoomIds.has(roomId)) return "CURRENT";
-    if (myNextRoomIds.has(roomId)) return "NEXT";
-    return "";
-  };
-
-  const getRoomBadgeSession = (roomId) => {
-  const schedule = schedulesByRoomId[roomId];
-
-  if (!schedule) return "";
-
-  if (isGuestUser) {
-    return schedule.current?.title || schedule.next?.title || "";
+const getRoomBadge = (roomId) => {
+  if (focusedRoom && roomId === focusedRoom.id) {
+    return "HERE";
   }
 
+  if (myCurrentRoomIds.has(roomId)) {
+    return isGuestUser ? "NOW" : "CURRENT";
+  }
+
+  if (myNextRoomIds.has(roomId)) {
+    return "NEXT";
+  }
+
+  return "";
+};
+
+const getRoomBadgeSession = (roomId) => {
   const currentSession = myCurrentSessions.find(
-    (s) => getRoomForSession(s, rooms)?.id === roomId
+    (session) => getRoomForSession(session, rooms)?.id === roomId
   );
 
   if (currentSession) {
@@ -570,10 +590,14 @@ export default function VenueMap({
   }
 
   const nextSession = myNextSessions.find(
-    (s) => getRoomForSession(s, rooms)?.id === roomId
+    (session) => getRoomForSession(session, rooms)?.id === roomId
   );
 
-  return nextSession?.title || "";
+  if (nextSession) {
+    return nextSession.title;
+  }
+
+  return "";
 };
 
   const getMarkerIcon = (room) => {
@@ -704,8 +728,11 @@ return (
             />
 
             {/* Markers */}
+            console.log("Visible Rooms", visibleRooms);
             {visibleRooms.map((room) => {
-              const badge = getRoomBadge(room.id);
+  if (!room.mapPosition) return null;
+
+  const badge = getRoomBadge(room.id);
               const badgeSession = getRoomBadgeSession(room.id);
               const icon = getMarkerIcon(room);
 

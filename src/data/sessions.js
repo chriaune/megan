@@ -8,7 +8,7 @@ export const sessions = [
     title: "Registration",
     start: "12:00",
     end: "14:00",
-    room: "Lobby",
+    room: "Main Lobby",
     kind: "mandatory",
   },
   {
@@ -17,7 +17,7 @@ export const sessions = [
     title: "Welcome",
     start: "14:00",
     end: "14:30",
-    room: "Main Stage",
+    room: "Meeting Space",
     kind: "mandatory",
   },
 
@@ -28,7 +28,7 @@ export const sessions = [
     title: "Workshop Copilot",
     start: "14:30",
     end: "16:30",
-    room: "Workshop Room A",
+    room: "Salon 1",
     kind: "selected",
   },
   {
@@ -37,7 +37,7 @@ export const sessions = [
     title: "Vendor Day",
     start: "14:30",
     end: "16:30",
-    room: "Vendor Hall",
+    room: "Pre-Function Area A",
     kind: "selected",
   },
   {
@@ -46,7 +46,7 @@ export const sessions = [
     title: "Presentations",
     start: "14:30",
     end: "16:30",
-    room: "Presentation Room",
+    room: "Meeting Space",
     kind: "selected",
   },
 
@@ -56,7 +56,7 @@ export const sessions = [
     title: "Welcome Reception",
     start: "16:30",
     end: "18:00",
-    room: "Reception Area",
+    room: "Pre-Function Area A",
     kind: "mandatory",
   },
 
@@ -69,7 +69,7 @@ export const sessions = [
     title: "Keynote (Internal Only)",
     start: "08:00",
     end: "10:00",
-    room: "Main Stage",
+    room: "Meeting Space",
     kind: "mandatory",
   },
   {
@@ -78,7 +78,7 @@ export const sessions = [
     title: "Break",
     start: "10:00",
     end: "10:20",
-    room: "Foyer",
+    room: "Main Lobby",
     kind: "mandatory",
   },
 
@@ -89,7 +89,7 @@ export const sessions = [
     title: "Presentation Track",
     start: "10:20",
     end: "13:00",
-    room: "Presentation Room",
+    room: "Salon 1",
     kind: "selected",
   },
   {
@@ -98,7 +98,7 @@ export const sessions = [
     title: "Vendor Sessions",
     start: "10:20",
     end: "13:00",
-    room: "Vendor Room",
+    room: "Salon 2",
     kind: "selected",
   },
   {
@@ -107,7 +107,7 @@ export const sessions = [
     title: "Onboarding Session",
     start: "10:20",
     end: "12:00",
-    room: "Training Room",
+    room: "Conference Center Lobby",
     kind: "selected",
   },
 
@@ -117,7 +117,7 @@ export const sessions = [
     title: "Vendor Update",
     start: "12:00",
     end: "12:45",
-    room: "Training Room",
+    room: "Salon 3",
     kind: "speaker",
   },
   {
@@ -154,11 +154,11 @@ export const sessions = [
     title: "Social Event",
     start: "16:30",
     end: "18:30",
-    room: "Event Area",
+    room: "Pre-Function Area A",
     kind: "mandatory",
   },
 
-  // =========================
+    // =========================
   // DAY 3 - Wednesday Nov 18
   // =========================
   {
@@ -167,7 +167,7 @@ export const sessions = [
     title: "Keynote (Internal Only)",
     start: "08:00",
     end: "10:00",
-    room: "Main Stage",
+    room: "Auditorium 1",
     kind: "mandatory",
   },
   {
@@ -176,7 +176,7 @@ export const sessions = [
     title: "Break",
     start: "10:00",
     end: "10:20",
-    room: "Foyer",
+    room: "Ballroom Foyer",
     kind: "mandatory",
   },
 
@@ -187,7 +187,7 @@ export const sessions = [
     title: "Presentations",
     start: "10:20",
     end: "14:00",
-    room: "Presentation Room",
+    room: "Meeting Space",
     kind: "selected",
   },
   {
@@ -196,7 +196,7 @@ export const sessions = [
     title: "Vendor Sessions",
     start: "10:20",
     end: "14:00",
-    room: "Vendor Room",
+    room: "Salon 2",
     kind: "selected",
   },
 
@@ -206,7 +206,7 @@ export const sessions = [
     title: "Closing Session",
     start: "14:00",
     end: "14:30",
-    room: "Main Stage",
+    room: "Auditorium 1",
     kind: "mandatory",
   },
   {
@@ -215,7 +215,7 @@ export const sessions = [
     title: "Lunch (Grab & Go)",
     start: "14:30",
     end: "15:00",
-    room: "Dining Area",
+    room: "Buffet Area",
     kind: "mandatory",
   },
   {
@@ -224,7 +224,8 @@ export const sessions = [
     title: "Travel",
     start: "15:00",
     end: "18:00",
-    room: "Departure Area",
+    room: "Main Entry/Exit",
     kind: "mandatory",
   },
+
 ];
