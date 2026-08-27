@@ -3,7 +3,6 @@ import { createRoot } from "react-dom/client";
 import {
   Mail,
   MapPin,
-  MessageCircle,
   Mic,
   Phone,
   Trophy,
@@ -25,8 +24,6 @@ import {
   vendorsService,
   attendeeService,
   connectionsService,
-  chatService,
-  serviceConfig,
 } from "./services/index.js";
 import { travelInfo } from "./data/travel.js";
 
@@ -71,7 +68,6 @@ const MESSAGE_TYPES = {
   CONNECTIONS: "connections",
   INCOMING: "incoming",
   OUTGOING: "outgoing",
-  CHAT: "chat",
   CONTACT: "contact",
   REMINDER: "reminder",
   WIFI: "wifi",
@@ -233,6 +229,8 @@ function Register({ complete }) {
   const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
   const validEmail = email.includes("@");
+  const [mobile, setMobile] = useState("");
+  const validMobile = mobile.trim().length >= 6;
   const [company, setCompany] = useState("");
   const [attendance, setAttendance] = useState("Onsite");
   const [facts, setFacts] = useState([]);
@@ -242,6 +240,7 @@ function Register({ complete }) {
     firstName.trim() &&
     company.trim() &&
     validEmail &&
+    validMobile &&
     facts.length === 3;
 
   return (
@@ -267,6 +266,20 @@ function Register({ complete }) {
           Please enter a valid email address.
         </small>
       )}
+<input
+  type="tel"
+  name="mobile"
+  value={mobile}
+  onChange={(e) => setMobile(e.target.value)}
+  placeholder="Phone Number"
+  autoComplete="tel"
+/>
+
+{mobile && !validMobile && (
+  <small style={{ color: "red" }}>
+    Please enter a valid phone number.
+  </small>
+)}
       <input
         placeholder="Company"
         value={company}
@@ -302,16 +315,45 @@ function Register({ complete }) {
         className="red"
         disabled={!isFormValid}
         onClick={() =>
-          complete({
-            name: `${lastName} ${firstName}`.trim(),
-            email,
-            company,
-            attendance,
-            bingoFacts: facts.map((i) => bingoFacts[i]),
-          })
+complete({
+  name: `${lastName} ${firstName}`.trim(),
+  email,
+  phone: mobile.trim(),
+  company,
+  attendance,
+  bingoFacts: facts.map((i) => bingoFacts[i]),
+})
         }
       >
         Simulate verification link
+      </button>
+    </div>
+  );
+}
+
+function ConnectionCard({ person, onContact, onBingo }) {
+  return (
+    <div className="connect-options">
+      <h4>{person.name}</h4>
+
+      <p>
+        {person.company} · {person.attendance}
+      </p>
+
+      <button onClick={() => onContact(person)}>
+        <Mail />
+        <span>
+          <b>Contact Details</b>
+          <em>View shared contact information</em>
+        </span>
+      </button>
+
+      <button onClick={() => onBingo(person)}>
+        <Trophy />
+        <span>
+          <b>Bingo Code</b>
+          <em>View verification code</em>
+        </span>
       </button>
     </div>
   );
@@ -364,14 +406,15 @@ function Badge({ u, openQr }) {
     </div>
   );
 }
-
 function Connect({ p, cmd }) {
   return (
     <div className="connect-options">
       <h4>Connect with {p.name}</h4>
+
       <p>
         {p.company} · {p.attendance}
       </p>
+
       <button
         disabled={p.attendance !== "Onsite"}
         onClick={() => cmd(`meet ${p.name} onsite`)}
@@ -379,35 +422,31 @@ function Connect({ p, cmd }) {
         <MapPin />
         <span>
           <b>On-site meeting</b>
-          <em>Suggest a meeting point</em>
+          <em> Suggest a meeting point</em>
         </span>
       </button>
-      <button onClick={() => cmd(`quick chat with ${p.name}`)}>
-        <MessageCircle />
-        <span>
-          <b>Quick chat</b>
-          <em>Start a MEGAN chat</em>
-        </span>
-      </button>
+
       <button onClick={() => cmd(`show email for ${p.name}`)}>
         <Mail />
         <span>
           <b>Email</b>
-          <em>Show verified email</em>
+          <em> Show shared email address</em>
         </span>
       </button>
+
       <button onClick={() => cmd(`show phone for ${p.name}`)}>
         <Phone />
         <span>
           <b>Phone number</b>
-          <em>Show shared phone</em>
+          <em> Show shared phone number</em>
         </span>
       </button>
+
       <button onClick={() => cmd(`show badge code for ${p.name}`)}>
         <Trophy />
         <span>
           <b>Bingo Code</b>
-          <em>Show verification code</em>
+          <em> Show Bingo verification code</em>
         </span>
       </button>
     </div>
@@ -1020,18 +1059,22 @@ function VenueView({
   );
 }
 
-function ConnectionsView({ connections, people, byId, cmd }) {
+function ConnectionsView({ connections, byId, cmd }) {
   const connectedPeople = connections.accepted
-    .map((x) => byId(x.personId))
+    .map((connection) => byId(connection.personId))
     .filter(Boolean);
 
-  const handleShowBingoCode = (personName) => {
-    cmd(`show badge code for ${personName}`);
+  const handleShowContactDetails = (person) => {
+    cmd(`connect options for ${person.name}`);
+  };
+
+  const handleShowBingoCode = (person) => {
+    cmd(`show badge code for ${person.name}`);
   };
 
   return (
     <div>
-      <h4>My connections</h4>
+      <h4>My Connections</h4>
 
       {connectedPeople.length === 0 ? (
         <div className="card">
@@ -1041,19 +1084,39 @@ function ConnectionsView({ connections, people, byId, cmd }) {
         <div className="connections-list">
           {connectedPeople.map((person) => (
             <div key={person.id} className="connection-item">
-              <PCard
-                p={person}
-                sub={`${person.company} · ${person.attendance}`}
-                action="Message"
-                onConnect={() => cmd(`quick chat with ${person.name}`)}
-              />
-              <button
-                className="bingo-code-button"
-                onClick={() => handleShowBingoCode(person.name)}
-                title="View their badge code"
-              >
-                🎯 Bingo Code
-              </button>
+
+              <div className="connection-person">
+                <div className="avatar large">
+                  {person.avatar}
+                </div>
+
+                <div className="connection-details">
+                  <div className="connection-name">
+                    {person.name}
+                  </div>
+
+                  <div className="connection-role">
+                    {person.role || person.title}
+                  </div>
+                </div>
+              </div>
+
+              <div className="connection-actions">
+                <button
+                  className="contact-details-button"
+                  onClick={() => handleShowContactDetails(person)}
+                >
+                  Contact Details
+                </button>
+
+                <button
+                  className="bingo-code-button"
+                  onClick={() => handleShowBingoCode(person)}
+                >
+                  🎯 Bingo Code
+                </button>
+              </div>
+
             </div>
           ))}
         </div>
@@ -1061,6 +1124,8 @@ function ConnectionsView({ connections, people, byId, cmd }) {
     </div>
   );
 }
+
+
 
 function IncomingView({ connections, people, byId, connect }) {
   return (
@@ -1118,16 +1183,6 @@ function OutgoingView({ connections, people, byId, abortOutgoingRequest }) {
   );
 }
 
-function ChatView({ p }) {
-  return (
-    <div className="card">
-      <h4>Quick chat with {p.name}</h4>
-      <p>
-        <b>{p.name}:</b> Hi, happy to connect.
-      </p>
-    </div>
-  );
-}
 
 function ContactView({ label, value }) {
   return (
@@ -1525,7 +1580,6 @@ function Content({
         abortOutgoingRequest={abortOutgoingRequest}
       />
     ),
-    [MESSAGE_TYPES.CHAT]: () => <ChatView p={m.p} />,
     [MESSAGE_TYPES.CONTACT]: () => (
       <ContactView label={m.label} value={m.value} />
     ),
@@ -1908,6 +1962,11 @@ function selectTrackForGroup(groupKey, sessionId) {
     return updatedUser;
   });
 }
+function isAcceptedConnection(personId) {
+  return connections.accepted.some(
+    (connection) => connection.personId === personId
+  );
+}
 
   // ========================================================================
   // COMMAND ROUTING
@@ -1945,12 +2004,19 @@ function selectTrackForGroup(groupKey, sessionId) {
       !isGuest(u)
         ? say(MESSAGE_TYPES.VENDOR, "", { vendorId: vendor.id })
         : need("Connect Me");
-    } else if (l.includes("show badge code") && person) {
-      say(MESSAGE_TYPES.CONTACT, "", {
-        label: `${person.name}'s Bingo Code`,
-        value: person.badgeCode || "Not available",
-      });
-    } else if (l.includes("badge")) {
+} else if (l.includes("show badge code") && person) {
+  if (!isAcceptedConnection(person.id)) {
+    say(
+      MESSAGE_TYPES.TEXT,
+      `Connect with ${person.name} before viewing their Bingo Code.`
+    );
+  } else {
+    say(MESSAGE_TYPES.CONTACT, "", {
+      label: `${person.name}'s Bingo Code`,
+      value: person.badgeCode || "Not available",
+    });
+  }
+} else if (l.includes("badge")) {
       !isGuest(u) ? say(MESSAGE_TYPES.BADGE) : need("Badge");
     } else if (l.includes("my connections")) {
       !isGuest(u)
@@ -1965,27 +2031,43 @@ function selectTrackForGroup(groupKey, sessionId) {
       !isGuest(u) ? say(MESSAGE_TYPES.INCOMING) : need("incoming requests");
     } else if (l.includes("outgoing")) {
       !isGuest(u) ? say(MESSAGE_TYPES.OUTGOING) : need("outgoing requests");
-    } else if (l.includes("connect me")) {
-      !isGuest(u)
-        ? say(MESSAGE_TYPES.SUGGESTIONS)
-        : need("Connect Me");
-    } else if (l.startsWith("meet ") && person) {
-      say(
-        MESSAGE_TYPES.TEXT,
-        `MEGAN suggested Coffee Corner for an on-site meeting with ${person.name}.`
-      );
-    } else if (l.includes("quick chat") && person) {
-      say(MESSAGE_TYPES.CHAT, "", { p: person });
-    } else if (l.includes("show email") && person) {
-      say(MESSAGE_TYPES.CONTACT, "", {
-        label: `Email for ${person.name}`,
-        value: person.email,
-      });
-    } else if (l.includes("show phone") && person) {
-      say(MESSAGE_TYPES.CONTACT, "", {
-        label: `Phone for ${person.name}`,
-        value: person.phone,
-      });
+} else if (l.includes("connect options") && person) {
+  !isGuest(u)
+    ? say(MESSAGE_TYPES.CONNECT, "", { personId: person.id })
+    : need("Connect Me");
+} else if (l.includes("connect me")) {
+  !isGuest(u)
+    ? say(MESSAGE_TYPES.SUGGESTIONS)
+    : need("Connect Me");
+} else if (l.startsWith("meet ") && person) {
+  say(
+    MESSAGE_TYPES.TEXT,
+    `MEGAN suggested Coffee Corner for an on-site meeting with ${person.name}.`
+  );
+} else if (l.includes("show email") && person) {
+  if (!isAcceptedConnection(person.id)) {
+    say(
+      MESSAGE_TYPES.TEXT,
+      `Connect with ${person.name} before viewing their contact details.`
+    );
+  } else {
+    say(MESSAGE_TYPES.CONTACT, "", {
+      label: `Email for ${person.name}`,
+      value: person.email || "Not shared",
+    });
+  }
+} else if (l.includes("show phone") && person) {
+  if (!isAcceptedConnection(person.id)) {
+    say(
+      MESSAGE_TYPES.TEXT,
+      `Connect with ${person.name} before viewing their contact details.`
+    );
+  } else {
+    say(MESSAGE_TYPES.CONTACT, "", {
+      label: `Phone for ${person.name}`,
+      value: person.phone || "Not shared",
+    });
+  }
     } else if (l.includes("reminder")) {
       !isGuest(u) ? say(MESSAGE_TYPES.REMINDER) : need("reminders");
     } else if (l.includes("wifi")) {
@@ -2000,7 +2082,7 @@ function selectTrackForGroup(groupKey, sessionId) {
     } else {
       say(
         MESSAGE_TYPES.TEXT,
-        "Try Register, Agenda, My Day, Badge, Bingo, Connect me, or Connect me with Microsoft."
+        "Try Register, Agenda, My Day, Badge, Bingo, Connect Me, Venue Map, Travel, or WiFi."
       );
     }
 

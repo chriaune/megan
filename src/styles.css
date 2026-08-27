@@ -440,7 +440,8 @@ form {
   display: grid;
   grid-template-columns: 44px 1fr 38px 44px;
   gap: var(--space-sm);
-  padding: var(--space-sm) var(--space-lg) calc(var(--space-lg) + env(safe-area-inset-bottom));
+  padding: var(--space-sm) var(--space-lg)
+    calc(var(--space-lg) + env(safe-area-inset-bottom));
   background: var(--dark);
   flex-shrink: 0;
 }
@@ -1020,8 +1021,8 @@ form button.mic:hover {
 }
 
 .notification-pill {
-  background: rgba(255,255,255,0.15);
-  border: 1px solid rgba(255,255,255,0.25);
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.25);
   color: white;
   border-radius: 999px;
   padding: 2px 8px;
@@ -1197,8 +1198,9 @@ form button.mic:hover {
 }
 
 .connect-options > button span {
-min-width: 0;
+  min-width: 0;
 }
+
 .connect-options > button b,
 .connect-options > button em {
   white-space: normal;
@@ -1233,7 +1235,6 @@ min-width: 0;
   min-width: 120px;
   white-space: nowrap;
 }
-
 
 .confirm-actions button.red {
   background: var(--red);
@@ -1321,6 +1322,10 @@ min-width: 0;
   }
 }
 
+/* ============================================================================
+   EXTRA / CONNECT & CONNECTIONS
+   ============================================================================ */
+
 .travel-section {
   margin: 0.5rem 0;
 }
@@ -1331,7 +1336,8 @@ min-width: 0;
 
 .travel-section p {
   margin: 0.15rem 0 0;
-} 
+}
+
 .attendance-pill {
   background: transparent;
   border: none;
@@ -1340,6 +1346,7 @@ min-width: 0;
   cursor: pointer;
   padding: 0 4px;
 }
+
 .conflict-warning {
   margin: 12px 0;
   padding: 12px;
@@ -1351,6 +1358,8 @@ min-width: 0;
   color: #8a6d3b;
   font-weight: 600;
 }
+
+/* keep your parallel override */
 .agenda-session-row-parallel {
   display: grid;
   grid-template-columns: repeat(var(--parallel-count), minmax(140px, 1fr));
@@ -1362,4 +1371,115 @@ min-width: 0;
 .agenda-session-row-parallel .track-session-button {
   width: 100%;
   min-width: 140px;
+}
+
+.connection-person {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ✅ baseline connection item styles (used by pending-like rows) */
+.connection-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  margin-bottom: 10px;
+  border-radius: 10px;
+  background: #f8f8f8;
+  border: 1px solid #e5e7eb;
+}
+
+/* ✅ Make "My Connections" look like "Pending outgoing" */
+.my-connections,
+#my-connections,
+section.my-connections,
+div.my-connections {
+  background: var(--light-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+  margin: var(--space-md) 0;
+}
+
+.my-connection,
+.my-connections .connection-item,
+.connection-item {
+  background: #ffffff !important;
+  box-shadow: var(--shadow-xs);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+
+.connection-name {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1.1;
+}
+
+.connection-role {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+/* If you have a status line for pending-like look */
+.connection-status {
+  font-size: 10px;
+  font-weight: 900;
+  color: var(--red);
+  opacity: 0.9;
+  margin-top: 4px;
+}
+
+/* ✅ Buttons to match pending rows (pill style + hover) */
+.contact-details-button {
+  background: #ffffff;
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+
+  border-radius: var(--radius-full);
+  padding: 8px 10px;
+
+  font-size: 10px;
+  font-weight: 700;
+
+  transition: all var(--transition-fast);
+}
+
+.contact-details-button:hover {
+  background: var(--light-tertiary);
+  border-color: var(--text-tertiary);
+  transform: translateY(-1px);
+}
+
+/* ✅ Bingo Code button in red-pill style (like pending abort) */
+.bingo-code-button {
+  background: var(--red);
+  color: var(--light);
+  border-radius: var(--radius-full);
+  padding: 8px 10px;
+
+  font-size: 10px;
+  font-weight: 700;
+
+  transition: all var(--transition-fast);
+}
+
+.bingo-code-button:hover {
+  background: var(--red-dark);
+  transform: translateY(-1px);
+}
+
+/* right-side action alignment */
+.connection-actions,
+.my-connections .connection-actions,
+.connection-item .connection-actions {
+  margin-left: auto;
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
 }
