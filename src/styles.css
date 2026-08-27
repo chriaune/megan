@@ -1332,3 +1332,34 @@ min-width: 0;
 .travel-section p {
   margin: 0.15rem 0 0;
 } 
+.attendance-pill {
+  background: transparent;
+  border: none;
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0 4px;
+}
+.conflict-warning {
+  margin: 12px 0;
+  padding: 12px;
+  border-radius: 12px;
+
+  background: #fff4cd;
+  border: 1px solid #ffe58f;
+
+  color: #8a6d3b;
+  font-weight: 600;
+}
+.agenda-session-row-parallel {
+  display: grid;
+  grid-template-columns: repeat(var(--parallel-count), minmax(140px, 1fr));
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.agenda-session-row-parallel .track-session-button {
+  width: 100%;
+  min-width: 140px;
+}
